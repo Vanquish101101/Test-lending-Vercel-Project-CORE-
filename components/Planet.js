@@ -1,46 +1,74 @@
 'use client';
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Glowing wireframe earth-like planet (matches reference globe).
+const RADIUS = 1.45;
+
+// Cyan atmospheric rim glow (fresnel), back side.
+function Atmosphere() {
+  const mat = useMemo(() => new THREE.ShaderMaterial({
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
+    depthWrite: false,
+    uniforms: { uColor: { value: new THREE.Color('#3aa6ff') }, uPower: { value: 3.0 }, uIntensity: { value: 1.15 } },
+    vertexShader: `
+      varying vec3 vN; varying vec3 vP;
+      void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position,1.0); vP = mv.xyz; gl_Position = projectionMatrix * mv; }
+    `,
+    fragmentShader: `
+      varying vec3 vN; varying vec3 vP; uniform vec3 uColor; uniform float uPower; uniform float uIntensity;
+      void main(){ vec3 v = normalize(-vP); float f = pow(1.0 - max(dot(v, vN), 0.0), uPower); gl_FragColor = vec4(uColor, f * uIntensity); }
+    `,
+  }), []);
+  return (
+    <mesh scale={1.18}>
+      <sphereGeometry args={[RADIUS, 64, 64]} />
+      <primitive object={mat} attach="material" />
+    </mesh>
+  );
+}
+
 export default function Planet() {
-  const core = useRef();
-  const wire = useRef();
-  const atmo = useRef();
+  const earth = useRef();
+  const clouds = useRef();
+  const [map, bump, night, water] = useTexture([
+    '/textures/earth-blue-marble.jpg',
+    '/textures/earth-topology.png',
+    '/textures/earth-night.jpg',
+    '/textures/earth-water.png',
+  ]);
+
+  useMemo(() => {
+    [map, bump, night, water].forEach((t) => { if (t) t.anisotropy = 8; });
+    map.colorSpace = THREE.SRGBColorSpace;
+    night.colorSpace = THREE.SRGBColorSpace;
+  }, [map, bump, night, water]);
 
   useFrame((state, delta) => {
-    if (core.current) core.current.rotation.y += delta * 0.18;
-    if (wire.current) wire.current.rotation.y += delta * 0.18;
-    if (atmo.current) {
-      const s = 1 + Math.sin(state.clock.elapsedTime * 0.8) * 0.01;
-      atmo.current.scale.set(s, s, s);
-    }
+    if (earth.current) earth.current.rotation.y += delta * 0.045;
+    if (clouds.current) clouds.current.rotation.y += delta * 0.06;
   });
 
   return (
-    <group>
-      {/* solid dark core */}
-      <mesh ref={core}>
-        <sphereGeometry args={[1.28, 48, 48]} />
+    <group rotation={[0.35, 0, 0.08]}>
+      <mesh ref={earth}>
+        <sphereGeometry args={[RADIUS, 96, 96]} />
         <meshStandardMaterial
-          color={'#08183a'}
-          emissive={'#0a2a66'}
-          emissiveIntensity={0.55}
-          roughness={0.7}
-          metalness={0.2}
+          map={map}
+          bumpMap={bump}
+          bumpScale={0.04}
+          metalnessMap={water}
+          metalness={0.35}
+          roughness={0.78}
+          emissiveMap={night}
+          emissive={'#ffd27a'}
+          emissiveIntensity={1.7}
         />
       </mesh>
-      {/* glowing wireframe shell */}
-      <mesh ref={wire} scale={1.012}>
-        <sphereGeometry args={[1.28, 36, 36]} />
-        <meshBasicMaterial color={'#3fb6ff'} wireframe transparent opacity={0.45} />
-      </mesh>
-      {/* atmosphere glow */}
-      <mesh ref={atmo} scale={1.14}>
-        <sphereGeometry args={[1.28, 32, 32]} />
-        <meshBasicMaterial color={'#2a6cff'} transparent opacity={0.08} side={THREE.BackSide} />
-      </mesh>
+      <Atmosphere />
     </group>
   );
 }

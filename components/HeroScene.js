@@ -11,12 +11,11 @@ function CameraRig() {
   const center = useRef(new THREE.Vector3(0, 0, 0));
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    const radius = 5.2;
-    // slow horizontal orbit around the planet
-    const angle = t * 0.06;
+    const radius = 6.0;
+    const angle = t * 0.05; // full 360° orbit (~125s per revolution)
     camera.position.x = Math.sin(angle) * radius;
     camera.position.z = Math.cos(angle) * radius;
-    camera.position.y = 0.5 + Math.sin(t * 0.15) * 0.35;
+    camera.position.y = Math.sin(t * 0.12) * 0.7;
     camera.lookAt(center.current);
   });
   return null;
@@ -26,16 +25,19 @@ export default function HeroScene() {
   return (
     <Canvas
       dpr={[1, 2]}
-      camera={{ position: [0, 0.5, 5.2], fov: 45 }}
+      camera={{ position: [0, 0.4, 6], fov: 42 }}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+      onCreated={({ gl }) => {
+        gl.toneMapping = THREE.ACESFilmicToneMapping;
+        gl.toneMappingExposure = 1.05;
+      }}
     >
-      <color attach="background" args={['#04050d']} />
-      <fog attach="fog" args={['#04050d', 8, 20]} />
-      <ambientLight intensity={0.35} />
-      {/* main light from the left (matches reference glow) */}
-      <directionalLight position={[-6, 2, 3]} intensity={2.2} color={'#6fb8ff'} />
-      <pointLight position={[-3, 1, 2]} intensity={20} distance={14} color={'#3a7bff'} />
-      <pointLight position={[4, -2, -3]} intensity={8} distance={14} color={'#7c5cff'} />
+      {/* transparent background so the matrix layer behind shows through gaps */}
+      <ambientLight intensity={0.18} />
+      {/* key light from the left (cinematic terminator, like reference 002) */}
+      <directionalLight position={[-7, 1.5, 2.5]} intensity={3.0} color={'#cfe4ff'} />
+      <pointLight position={[-4, 0.5, 2]} intensity={26} distance={18} color={'#3a7bff'} />
+      <pointLight position={[5, -1.5, -3]} intensity={10} distance={18} color={'#7c5cff'} />
 
       <Suspense fallback={null}>
         <Starfield />

@@ -43,7 +43,7 @@ a { color: inherit; text-decoration: none; }
 }
 .hero canvas { display: block; }
 
-.hero-canvas-wrap { position: absolute; inset: 0; z-index: 1; }
+.hero-canvas-wrap { position: absolute; inset: 0; z-index: 2; }
 
 .title-core {
   position: absolute;
@@ -256,12 +256,13 @@ a { color: inherit; text-decoration: none; }
 }
 @keyframes scan { from { left: -40%; } to { left: 110%; } }
 
-/* ===== Matrix overlay + glitch ===== */
+/* ===== Matrix overlay + glitch (BEHIND the planet, distant) ===== */
 .matrix-wrap {
-  position: absolute; inset: 0; z-index: 3; pointer-events: none;
-  opacity: 0; transition: opacity 0.5s; mix-blend-mode: screen;
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  opacity: 0; transition: opacity 0.6s; mix-blend-mode: screen;
+  filter: blur(0.7px) brightness(0.9); transform: scale(1.04);
 }
-.matrix-wrap.show { opacity: 0.9; }
+.matrix-wrap.show { opacity: 0.5; }
 .matrix-canvas { width: 100%; height: 100%; display: block; }
 .matrix-wrap.glitch { animation: glitch 0.18s steps(2) infinite; }
 @keyframes glitch {
@@ -277,6 +278,71 @@ a { color: inherit; text-decoration: none; }
   0% { transform: translate(0,0); } 33% { transform: translate(3px,-2px); }
   66% { transform: translate(-2px,2px); } 100% { transform: translate(0,0); }
 }
+
+/* ===== Themed node previews ===== */
+.pv-wrap {
+  width: 118px; height: 60px; margin: 6px auto 0; border-radius: 6px;
+  border: 1px solid var(--c); background: linear-gradient(140deg, color-mix(in srgb, var(--c) 16%, #060a18), #05070f);
+  overflow: hidden; position: relative; box-shadow: 0 0 12px color-mix(in srgb, var(--c) 40%, transparent);
+}
+/* web */
+.pv-web { position:absolute; inset:8px; }
+.pv-web span { display:block; height:5px; margin-bottom:5px; border-radius:3px; background: color-mix(in srgb, var(--c) 70%, #fff); animation: barw 1.6s ease-in-out infinite; }
+.pv-web span:nth-child(2){ width:70%; animation-delay:.2s } .pv-web span:nth-child(3){ width:50%; animation-delay:.4s }
+.pv-web i { position:absolute; right:6px; bottom:2px; width:10px; height:12px; background:var(--c); animation: blink 0.8s steps(2) infinite; }
+@keyframes barw { 0%,100%{ width:90% } 50%{ width:55% } }
+@keyframes blink { 50%{ opacity:0 } }
+/* 3d cube */
+.pv-3d { position:absolute; inset:0; display:grid; place-items:center; perspective:240px; }
+.pv-3d .cube { position:relative; width:30px; height:30px; transform-style:preserve-3d; animation: spin3d 4s linear infinite; }
+.pv-3d .cube span { position:absolute; width:30px; height:30px; border:1px solid var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); }
+.pv-3d .cube span:nth-child(1){ transform: translateZ(15px) } .pv-3d .cube span:nth-child(2){ transform: rotateY(180deg) translateZ(15px) }
+.pv-3d .cube span:nth-child(3){ transform: rotateY(90deg) translateZ(15px) } .pv-3d .cube span:nth-child(4){ transform: rotateY(-90deg) translateZ(15px) }
+.pv-3d .cube span:nth-child(5){ transform: rotateX(90deg) translateZ(15px) } .pv-3d .cube span:nth-child(6){ transform: rotateX(-90deg) translateZ(15px) }
+@keyframes spin3d { from{ transform: rotateX(-20deg) rotateY(0) } to{ transform: rotateX(-20deg) rotateY(360deg) } }
+/* equalizer */
+.pv-eq { position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; gap:3px; padding:8px; }
+.pv-eq b { width:7px; background: var(--c); border-radius:2px 2px 0 0; animation: eq 0.7s ease-in-out infinite alternate; box-shadow:0 0 6px var(--c); }
+@keyframes eq { from{ height:14% } to{ height:90% } }
+/* film */
+.pv-film { position:absolute; inset:0; display:flex; align-items:center; gap:6px; padding:0 6px; overflow:hidden; }
+.pv-film .strip { position:absolute; inset:0; background: repeating-linear-gradient(90deg, transparent 0 18px, color-mix(in srgb,var(--c) 30%,transparent) 18px 20px); animation: filmrun 1.2s linear infinite; }
+.pv-film u { width:18px; height:30px; border:1px solid var(--c); background: color-mix(in srgb,var(--c) 14%,transparent); flex:0 0 auto; }
+@keyframes filmrun { to{ transform: translateX(-20px) } }
+/* marketing bars */
+.pv-bars { position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; gap:6px; padding:8px; }
+.pv-bars b { width:10px; height:calc(var(--h)*100%); background: linear-gradient(var(--c), transparent); border-radius:2px; transform-origin:bottom; animation: grow 1.4s ease-in-out infinite alternate; }
+@keyframes grow { from{ transform: scaleY(.4) } to{ transform: scaleY(1) } }
+/* earn chart */
+.pv-chart { position:absolute; inset:0; }
+.pv-chart svg { width:100%; height:100%; }
+.pv-chart polyline { fill:none; stroke:var(--c); stroke-width:2; filter: drop-shadow(0 0 4px var(--c)); stroke-dasharray:260; stroke-dashoffset:260; animation: draw 2.4s ease forwards infinite; }
+.pv-chart em { position:absolute; top:6px; right:8px; color:var(--c); font-style:normal; font-weight:700; animation: pulse 1.2s infinite; }
+@keyframes draw { to{ stroke-dashoffset:0 } }
+@keyframes pulse { 50%{ opacity:.4 } }
+/* thinking net */
+.pv-net { position:absolute; inset:0; display:grid; grid-template-columns:repeat(3,1fr); place-items:center; padding:8px; }
+.pv-net i { width:9px; height:9px; border-radius:50%; background:var(--c); box-shadow:0 0 8px var(--c); animation: pulse 1.2s infinite; }
+/* game */
+.pv-game { position:absolute; inset:0; }
+.pv-game .player { position:absolute; bottom:8px; left:10px; width:12px; height:12px; background:var(--c); animation: jump 0.9s ease-in-out infinite; }
+.pv-game .coin { position:absolute; top:10px; right:14px; width:10px; height:10px; border-radius:50%; border:2px solid var(--c); animation: pulse 0.7s infinite; }
+@keyframes jump { 0%,100%{ transform: translateY(0) } 50%{ transform: translateY(-18px) } }
+
+/* ===== Menu plating (reference 001) ===== */
+.menu-strip {
+  position: relative;
+  background: linear-gradient(100deg, rgba(8,14,42,0.92), rgba(22,12,48,0.92));
+  border: 1px solid rgba(58,160,255,0.45);
+  border-left: 2px solid var(--red);
+  box-shadow: 0 0 20px rgba(58,160,255,0.22), inset 0 0 16px rgba(124,92,255,0.14), -3px 0 14px rgba(255,59,107,0.25);
+}
+.menu-strip::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 3px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(58,160,255,0.6), transparent);
+}
+.menu-strip.alt { border-left: 1px solid rgba(58,160,255,0.45); border-right: 2px solid var(--red); box-shadow: 0 0 20px rgba(58,160,255,0.2), inset 0 0 16px rgba(58,160,255,0.12), 3px 0 14px rgba(255,59,107,0.25); }
+.menu-brand::after { content: ' ››'; color: var(--gold); }
 
 @media (max-width: 760px) {
   .about-grid { grid-template-columns: 1fr; }

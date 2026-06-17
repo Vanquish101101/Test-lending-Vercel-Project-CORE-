@@ -8,16 +8,16 @@ export default function MatrixRain() {
   const [active, setActive] = useState(false);
   const [glitch, setGlitch] = useState(false);
 
-  // schedule activation every 2-3 minutes for ~6s
+  // schedule activation more frequently (~40-80s) for ~5s with glitch in/out
   useEffect(() => {
     let timer;
     const schedule = () => {
-      const delay = 120000 + Math.random() * 60000; // 2-3 min
+      const delay = 40000 + Math.random() * 40000; // 40-80s
       timer = setTimeout(() => {
         setGlitch(true);
-        setTimeout(() => { setActive(true); setGlitch(false); }, 650);
-        setTimeout(() => { setGlitch(true); }, 6000);
-        setTimeout(() => { setActive(false); setGlitch(false); schedule(); }, 6700);
+        setTimeout(() => { setActive(true); setGlitch(false); }, 500);
+        setTimeout(() => { setGlitch(true); }, 5200);
+        setTimeout(() => { setActive(false); setGlitch(false); schedule(); }, 5800);
       }, delay);
     };
     schedule();
@@ -31,20 +31,30 @@ export default function MatrixRain() {
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    const chars = 'アイウエオカキクケコ01ｱｲｳABCDEF{}[]<>/=+*'.split('');
-    const fontSize = 16;
+    const chars = 'アイウエオカキクケコサシスセソﾀﾁﾂ01ABCDEF<>/=+*¦'.split('');
+    const fontSize = 15;
     const cols = Math.floor(canvas.width / fontSize);
-    const drops = new Array(cols).fill(1).map(() => Math.random() * -100);
+    const drops = new Array(cols).fill(1).map(() => Math.random() * -120);
     let raf;
     const draw = () => {
-      ctx.fillStyle = 'rgba(2, 6, 4, 0.08)';
+      // crisp: stronger clear so trails are short and sharp
+      ctx.fillStyle = 'rgba(1, 5, 3, 0.16)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#34ff7a';
-      ctx.font = fontSize + 'px monospace';
+      ctx.font = '700 ' + fontSize + 'px Consolas, monospace';
       for (let i = 0; i < drops.length; i++) {
-        const text = chars[Math.floor(Math.random() * chars.length)];
-        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        const text = chars[(Math.random() * chars.length) | 0];
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+        // bright leading char
+        ctx.fillStyle = '#d8ffe9';
+        ctx.shadowColor = '#39ff8a';
+        ctx.shadowBlur = 8;
+        ctx.fillText(text, x, y);
+        // dimmer trailing char
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#1fbf5e';
+        ctx.fillText(chars[(Math.random() * chars.length) | 0], x, y - fontSize);
+        if (y > canvas.height && Math.random() > 0.97) drops[i] = 0;
         drops[i]++;
       }
       raf = requestAnimationFrame(draw);

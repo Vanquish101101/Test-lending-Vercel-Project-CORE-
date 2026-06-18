@@ -1,45 +1,126 @@
 'use client';
-import { motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { THEMES } from '@/lib/themes';
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 40 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.6, delay: i * 0.06 } }),
-};
+// ---- reveal variants (cinematic, directional) ----
+const fromBottom = { hidden: { opacity: 0, y: 60 }, show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] } }) };
+const fromLeft = { hidden: { opacity: 0, x: -150, rotate: -3 }, show: (i = 0) => ({ opacity: 1, x: 0, rotate: 0, transition: { duration: 0.85, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] } }) };
+const fromRight = { hidden: { opacity: 0, x: 150, rotate: 3 }, show: (i = 0) => ({ opacity: 1, x: 0, rotate: 0, transition: { duration: 0.85, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] } }) };
+const popIn = { hidden: { opacity: 0, scale: 0.78, y: 60 }, show: (i = 0) => ({ opacity: 1, scale: 1, y: 0, transition: { duration: 0.75, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] } }) };
+const blurUp = { hidden: { opacity: 0, y: 40, filter: 'blur(10px)' }, show: (i = 0) => ({ opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.9, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] } }) };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } } };
+const vp = { once: true, amount: 0.2 };
+
+// animated count-up for the result metrics
+function Counter({ value }) {
+  const m = String(value).match(/^(\D*)(\d+)(\D*)$/);
+  const pre = m ? m[1] : '';
+  const target = m ? parseInt(m[2], 10) : 0;
+  const post = m ? m[3] : '';
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, amount: 0.6 });
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!inView) return;
+    let raf; const start = performance.now(); const dur = 1300;
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      setN(Math.round(target * e));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [inView, target]);
+  return <span ref={ref} className="cm-num">{pre}{n}{post}</span>;
+}
+
+// scroll-driven parallax HUD shards (contained INSIDE .content — never touches the hero)
+function Floaters() {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const y1 = useTransform(scrollYProgress, [0, 1], [0, -260]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, 200]);
+  const x1 = useTransform(scrollYProgress, [0, 1], [-80, 120]);
+  const x2 = useTransform(scrollYProgress, [0, 1], [80, -140]);
+  const rot = useTransform(scrollYProgress, [0, 1], [0, 90]);
+  return (
+    <div className="floaters" ref={ref} aria-hidden>
+      <motion.span className="fl fl-ring" style={{ y: y1, x: x1, rotate: rot }} />
+      <motion.span className="fl fl-bar" style={{ y: y2, x: x2 }} />
+      <motion.span className="fl fl-plus" style={{ y: y1, x: x2 }} />
+      <motion.span className="fl fl-tri" style={{ y: y2, x: x1, rotate: rot }} />
+      <motion.span className="fl fl-ring small" style={{ y: y2, x: x1, rotate: rot }} />
+      <motion.span className="fl fl-dot" style={{ y: y1, x: x2 }} />
+    </div>
+  );
+}
+
+// a tall section header with an oversized ghost index that overlaps the content
+function SecHead({ index, kicker, title, lead }) {
+  return (
+    <div className="sec-head">
+      <motion.span className="sec-ghost cyber-font" aria-hidden
+        initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 0.07, x: 0 }} viewport={vp} transition={{ duration: 1 }}>{index}</motion.span>
+      {kicker && <motion.span className="sec-kicker cyber-font" variants={fromBottom} initial="hidden" whileInView="show" viewport={vp}>{kicker}</motion.span>}
+      <motion.h2 variants={blurUp} initial="hidden" whileInView="show" viewport={vp}>{title}</motion.h2>
+      {lead && <motion.p className="lead" variants={fromBottom} initial="hidden" whileInView="show" viewport={vp}>{lead}</motion.p>}
+    </div>
+  );
+}
+
+const FEATURES = [
+  ['M3 12h6l2-5 3 10 2-5h2', 'Системный подход', 'Не набор разрозненных курсов, а единая операционная система навыков: каждое направление — узел, усиливающий соседние. Знание перестаёт быть фрагментом.'],
+  ['M4 19V5l8 6 8-6v14', 'Практика, а не теория', 'Каждый модуль завершается рабочим артефактом — лендингом, сценой, треком, воронкой. Ты выходишь с тем, что уже можно показать и продать.'],
+  ['M5 12l4 4L19 6', 'От идеи до запуска', 'Полный маршрут: мышление → продукт → деплой → рост. Без разрыва между «понял» и «сделал руками».'],
+  ['M12 2v20M2 12h20', 'Живая экосистема', 'Направления связаны графом, как узлы C.O.R.E. Прокачал одно — открыл следующее. Система растёт вместе с тобой.'],
+];
+
+const RESULTS = [
+  ['Мышление', 'Ясность решений', 'Ментальные модели снимают шум и информационную перегрузку: ты видишь структуру задачи и выбираешь быстро и точно.', 'x3', 'скорость решений'],
+  ['Маркетинг · Заработок', 'Поток клиентов', 'Воронки, контент и психология влияния, которые превращают холодное внимание в тёплые заявки и деньги.', '1500+', 'лидов в месяц'],
+  ['Веб · 3D · Медиа', 'Готовый продукт', 'От лендинга и 3D-сцены до аудио и видео — собственный продакшн без подрядчиков и потери смысла.', '14', 'дней до MVP'],
+];
 
 const STEPS = [
-  'Мышление — фундамент: ментальные модели и фокус',
-  'Маркетинг и Заработок — применяешь мышление к рынку',
-  'Веб / 3D / Аудио / Видео / Game — создаёшь продукт',
-  'Запуск и масштабирование — деплой и рост',
+  ['01', 'Фундамент', 'Мышление и ментальные модели: фокус, стратегия и принятие решений в условиях неопределённости.'],
+  ['02', 'Применение', 'Маркетинг и монетизация — выводишь мышление на рынок и превращаешь навык в устойчивый доход.'],
+  ['03', 'Создание', 'Веб, 3D, аудио, видео, game-дизайн — собираешь продукт собственными руками, от макета до релиза.'],
+  ['04', 'Запуск и рост', 'Деплой, аналитика, оптимизация и масштабирование — результат, который работает и растёт без тебя.'],
+];
+
+const TIERS = [
+  ['Старт', '0 ₽', 'разведка', ['Доступ к карте направлений', 'Базовые материалы каждого узла', 'Открытое сообщество'], false],
+  ['Поток', 'основной', 'рекомендуем', ['Все 8 направлений целиком', 'Задания, шаблоны и боевые инструменты', 'Регулярные обновления программы', 'Поддержка кураторов'], true],
+  ['Полный доступ', 'максимум', 'трансформация', ['Всё из тарифа «Поток»', 'Личное менторство и разборы', 'Приоритетная поддержка 1-на-1', 'Закрытые ресурсы и комьюнити-ядро'], false],
+];
+
+const TEAM = [
+  ['Архитектор системы', 'Мышление · стратегия'],
+  ['Маркетинг-лид', 'Воронки · контент · психология'],
+  ['Финанс-навигатор', 'Монетизация · модели дохода'],
+  ['Веб-инженер', 'Frontend · backend · деплой'],
+  ['3D / Motion', 'Графика · сцены · анимация'],
+  ['Медиа-продюсер', 'Аудио · видео · продакшн'],
 ];
 
 export default function Sections() {
   return (
     <div className="content">
-      {/* ===== Block 2: themes ===== */}
+      <Floaters />
+
+      {/* ===== Directions (themes) ===== */}
       <section className="section" id="themes">
-        <motion.h2 variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-          Разделы и направления
-        </motion.h2>
-        <motion.p className="lead" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-          Восемь направлений Project C.O.R.E. — те же, что в меню и на сетке узлов первого экрана.
-          Наведи на блок, чтобы увидеть суть; каждый раздел готов вести к своему ресурсу.
-        </motion.p>
-        <div className="themes-grid">
+        <span className="sec-bracket tl" aria-hidden /><span className="sec-bracket br" aria-hidden />
+        <SecHead index="01" kicker="// DIRECTIONS" title="Восемь направлений"
+          lead="Те же узлы, что в меню и на орбитальной сетке. Это не отдельные курсы — это грани одной системы. Наведи на блок, чтобы раскрыть суть." />
+        <motion.div className="themes-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
           {THEMES.map((t, i) => (
             <motion.a
-              href={`#${t.id}`}
-              id={t.id}
-              key={t.id}
-              className="theme-card"
-              style={{ color: t.color }}
-              custom={i}
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-              whileHover={{ y: -6, borderCOLOR: t.color }}
+              href={`#${t.id}`} id={t.id} key={t.id} className="theme-card" style={{ color: t.color }}
+              custom={i} variants={i % 2 ? fromRight : fromLeft}
+              whileHover={{ y: -8, scale: 1.03 }}
             >
               <span className="dot" style={{ background: t.color, color: t.color }} />
               <span className="glow" style={{ background: t.color }} />
@@ -47,81 +128,100 @@ export default function Sections() {
               <div className="ru">{t.ru}</div>
               <div className="sh">{t.short}</div>
               <div className="reveal">{t.desc}</div>
+              <span className="card-scan" aria-hidden />
             </motion.a>
           ))}
-        </div>
+        </motion.div>
       </section>
 
-      {/* ===== Block 3: benefits + diagram ===== */}
+      {/* ===== Why us ===== */}
+      <section className="section" id="why">
+        <SecHead index="02" kicker="// WHY IT WORKS" title="Почему это работает"
+          lead="Четыре принципа, на которых держится система — и которые отличают её от очередной папки с видео-уроками." />
+        <motion.div className="feature-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
+          {FEATURES.map(([d, title, text], i) => (
+            <motion.div className="feature-card" key={title} custom={i} variants={popIn} whileHover={{ y: -6 }}>
+              <svg className="feat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={d} /></svg>
+              <h3>{title}</h3>
+              <p>{text}</p>
+              <span className="feat-idx cyber-font" aria-hidden>{String(i + 1).padStart(2, '0')}</span>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* ===== Results / cases ===== */}
       <section className="section" id="benefits">
-        <motion.h2 variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-          Что даёт изучение
-        </motion.h2>
-        <motion.p className="lead" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-          Последовательный путь формирования мышления и навыков — от фундамента к запуску.
-          Карта вертикального среза: разделы связаны в единую систему.
-        </motion.p>
-        <div className="diagram">
-          {STEPS.map((s, i) => (
-            <motion.div
-              className="diag-row"
-              key={i}
-              custom={i}
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-            >
-              <div className="diag-node">{`0${i + 1}`}</div>
-              <div className="diag-line" />
-              <div className="diag-node" style={{ minWidth: 'auto', flex: 1 }}>{s}</div>
+        <SecHead index="03" kicker="// OUTCOMES" title="Что это даёт"
+          lead="Не абстрактные «знания», а измеримый результат на каждом уровне системы." />
+        <motion.div className="case-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
+          {RESULTS.map(([tag, title, text, num, unit], i) => (
+            <motion.div className="case-card" key={title} custom={i} variants={i === 1 ? popIn : (i ? fromRight : fromLeft)} whileHover={{ y: -8 }}>
+              <span className="case-tag">{tag}</span>
+              <div className="case-metric"><Counter value={num} /><span className="cm-unit">{unit}</span></div>
+              <h3>{title}</h3>
+              <p>{text}</p>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
-      {/* ===== Block 4: about ===== */}
+      {/* ===== Process ===== */}
+      <section className="section" id="process">
+        <SecHead index="04" kicker="// THE PATH" title="Как это работает"
+          lead="Линейный маршрут от первого принципа до растущего продукта. Каждый шаг опирается на предыдущий." />
+        <motion.div className="process" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
+          <span className="proc-spine" aria-hidden />
+          {STEPS.map(([n, title, text], i) => (
+            <motion.div className="proc-step" key={n} custom={i} variants={fromLeft} whileHover={{ x: 6 }}>
+              <div className="proc-num">{n}</div>
+              <div className="proc-body"><h3>{title}</h3><p>{text}</p></div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* ===== Pricing ===== */}
+      <section className="section" id="pricing">
+        <SecHead index="05" kicker="// ACCESS" title="Доступ"
+          lead="Три уровня погружения — от первой разведки до полной трансформации." />
+        <motion.div className="price-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
+          {TIERS.map(([name, price, sub, feats, hot], i) => (
+            <motion.div className={`price-card ${hot ? 'hot' : ''}`} key={name} custom={i} variants={popIn} whileHover={{ y: -10 }}>
+              {hot && <span className="price-badge">{sub}</span>}
+              <div className="price-name">{name}</div>
+              <div className="price-sub">{!hot && sub}</div>
+              <div className="price-val">{price}</div>
+              <ul>{feats.map((f) => <li key={f}>{f}</li>)}</ul>
+              <a href="#footer" className="price-btn">Выбрать</a>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* ===== Team ===== */}
       <section className="section" id="about">
-        <motion.h2 variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-          О нас
-        </motion.h2>
-        <div className="about-grid">
-          <motion.div className="about-card" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-            <h3>Кто мы</h3>
-            <p>Project C.O.R.E. — экосистема знаний и инструментов: от мышления и маркетинга до 3D,
-              аудио, видео и геймдизайна. Мы собираем лучшее в единую интерактивную карту.</p>
-          </motion.div>
-          <motion.div className="about-card" custom={1} variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-            <h3>Чем полезны</h3>
-            <p>Помогаем пройти путь от идеи до запуска: структурируем обучение, даём инструменты и
-              практику, соединяем направления в рабочую систему под твою цель.</p>
-          </motion.div>
-        </div>
-        <div className="stats">
-          {[['8', 'направлений'], ['∞', 'связей'], ['1', 'система'], ['24/7', 'доступ']].map(([n, l], i) => (
-            <motion.div className="stat" key={l} custom={i} variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-              <div className="num">{n}</div>
-              <div className="lbl">{l}</div>
+        <SecHead index="06" kicker="// CURATORS" title="Кураторы направлений"
+          lead="За каждым узлом — практик, который сам прошёл этот путь и собирал продукты в бою." />
+        <motion.div className="team-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
+          {TEAM.map(([name, role], i) => (
+            <motion.div className="team-card" key={name} custom={i} variants={popIn} whileHover={{ y: -6, scale: 1.03 }}>
+              <div className="team-ava"><span /></div>
+              <div className="team-name">{name}</div>
+              <div className="team-role">{role}</div>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
-      {/* ===== Extra block: why / map ===== */}
-      <section className="section" id="more">
-        <motion.h2 variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-          Почему это работает
-        </motion.h2>
-        <div className="about-grid">
-          <motion.div className="about-card" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-            <h3>Единая стилистика</h3>
-            <p>Космос, сетка узлов и связи — метафора целостности: всё, что снаружи, то и внутри.</p>
-          </motion.div>
-          <motion.div className="about-card" custom={1} variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-            <h3>Практика и результат</h3>
-            <p>Каждый узел ведёт к ресурсам и заданиям. Учишься — применяешь — запускаешь.</p>
-          </motion.div>
-        </div>
+      {/* ===== Final CTA ===== */}
+      <section className="section cta-section">
+        <motion.div className="cta-box" variants={popIn} initial="hidden" whileInView="show" viewport={vp}>
+          <span className="cta-grid-glow" aria-hidden />
+          <motion.h2 variants={blurUp} initial="hidden" whileInView="show" viewport={vp}>Готов собрать свою систему?</motion.h2>
+          <p>Разберём твою цель и за 15 минут соберём маршрут из направлений именно под тебя.</p>
+          <a href="#footer" className="cta-btn">Связаться</a>
+        </motion.div>
       </section>
 
       <footer className="footer" id="footer">

@@ -11,15 +11,13 @@ function CameraRig() {
   const center = useRef(new THREE.Vector3(0, 0, 0));
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    const radius = 5.0;
-    // NOT a full 360 orbit — camera glides along the horizon, drifting right -> left.
-    // base drift to the left + a gentle eased sway, kept within a front arc near the horizon.
-    const drift = -t * 0.035;                 // negative = right -> left
-    const sway = Math.sin(t * 0.18) * 0.22;   // subtle cinematic sway
-    const angle = drift + sway;
+    // gentle radius breathing — life without ever changing the orbital speed
+    const radius = 5.0 + Math.sin(t * 0.06) * 0.18;
+    // CONSTANT angular velocity, right -> left, never stops, never reverses.
+    const angle = -t * 0.032;
     camera.position.x = Math.sin(angle) * radius;
     camera.position.z = Math.cos(angle) * radius;
-    camera.position.y = 0.18 + Math.sin(t * 0.12) * 0.18; // stay near horizon
+    camera.position.y = 0.16 + Math.sin(t * 0.09) * 0.14; // soft vertical glide near horizon
     camera.lookAt(center.current);
   });
   return null;
@@ -53,7 +51,7 @@ function LeftFlare() {
   );
 }
 
-export default function HeroScene() {
+export default function HeroScene({ dim = false, realistic = false }) {
   return (
     <Canvas
       dpr={[1, 2]}
@@ -73,9 +71,9 @@ export default function HeroScene() {
       <pointLight position={[4, -2, -3]} intensity={6} distance={14} color={'#5c6cff'} />
 
       <Suspense fallback={null}>
-        <Starfield />
+        <Starfield dim={dim} />
         <LeftFlare />
-        <Planet />
+        <Planet realistic={realistic} />
         <NodeGrid />
       </Suspense>
 

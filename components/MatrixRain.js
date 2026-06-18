@@ -1,28 +1,11 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-// Periodic "matrix" code-rain that briefly replaces the star background
-// every ~2-3 minutes, with a glitch/tearing transition.
-export default function MatrixRain() {
+// Controlled by the page timeline. When `active`, it renders the "other reality"
+// of falling code that the shattered starfield is replaced with; `glitch` toggles
+// the tearing/pixel-shatter deformation around the swap.
+export default function MatrixRain({ active = false, glitch = false }) {
   const canvasRef = useRef(null);
-  const [active, setActive] = useState(false);
-  const [glitch, setGlitch] = useState(false);
-
-  // schedule activation every 2-3 minutes for ~6s
-  useEffect(() => {
-    let timer;
-    const schedule = () => {
-      const delay = 120000 + Math.random() * 60000; // 2-3 min
-      timer = setTimeout(() => {
-        setGlitch(true);
-        setTimeout(() => { setActive(true); setGlitch(false); }, 650);
-        setTimeout(() => { setGlitch(true); }, 6000);
-        setTimeout(() => { setActive(false); setGlitch(false); schedule(); }, 6700);
-      }, delay);
-    };
-    schedule();
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (!active) return;
@@ -31,22 +14,41 @@ export default function MatrixRain() {
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    const chars = 'アイウエオカキクケコ01ｱｲｳABCDEF{}[]<>/=+*'.split('');
-    const fontSize = 16;
+    const chars = 'アイウエオカキクケコサシスセソタチツテトﾅﾆﾇ01ｱｲｳｴｵ｜╠╣ABCDEF0123456789{}[]<>/=+*·'.split('');
+    const fontSize = 15;
     const cols = Math.floor(canvas.width / fontSize);
-    const drops = new Array(cols).fill(1).map(() => Math.random() * -100);
+    const drops = new Array(cols).fill(0).map(() => Math.random() * -120);
+    const speeds = new Array(cols).fill(0).map(() => 0.5 + Math.random() * 0.8);
+    // per-column depth: far columns are smaller/dimmer/slower -> volumetric, cinematic feel
+    const depth = new Array(cols).fill(0).map(() => 0.4 + Math.pow(Math.random(), 1.6) * 0.6);
     let raf;
+    const pick = () => chars[(Math.random() * chars.length) | 0];
     const draw = () => {
-      ctx.fillStyle = 'rgba(2, 6, 4, 0.08)';
+      // trail fade — keeps legible streaks, filmic but readable
+      ctx.fillStyle = 'rgba(1, 6, 4, 0.10)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#34ff7a';
-      ctx.font = fontSize + 'px monospace';
+      ctx.textBaseline = 'top';
       for (let i = 0; i < drops.length; i++) {
-        const text = chars[Math.floor(Math.random() * chars.length)];
-        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-        drops[i]++;
+        const d = depth[i];
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+        ctx.font = `700 ${(fontSize * (0.78 + d * 0.4)).toFixed(0)}px 'JetBrains Mono', Consolas, monospace`;
+        // rare dropout for organic life
+        if (Math.random() > 0.02) {
+          // brighter, depth-faded body
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = `rgba(58,220,120,${(0.6 * d).toFixed(3)})`;
+          ctx.fillText(pick(), x, y);
+          // crisp glowing head — clearly visible leading char
+          ctx.shadowColor = '#56ff9c';
+          ctx.shadowBlur = 8 * d;
+          ctx.fillStyle = `rgba(214,255,228,${(0.96 * d).toFixed(3)})`;
+          ctx.fillText(pick(), x, y + fontSize);
+        }
+        if (y > canvas.height && Math.random() > 0.975) { drops[i] = 0; speeds[i] = 0.5 + Math.random() * 0.8; }
+        drops[i] += speeds[i] * (0.55 + d * 0.6);
       }
+      ctx.shadowBlur = 0;
       raf = requestAnimationFrame(draw);
     };
     draw();

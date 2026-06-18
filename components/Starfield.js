@@ -30,7 +30,6 @@ function Layer({ count, rMin, rMax, base, twinkleAmt, twinkleSpd, dim }) {
   const ref = useRef();
   const geo = useMemo(() => {
     const pos = new Float32Array(count * 3);
-    const dir = new Float32Array(count * 3);
     const sz = new Float32Array(count);
     const ph = new Float32Array(count);
     const sp = new Float32Array(count);
@@ -43,11 +42,6 @@ function Layer({ count, rMin, rMax, base, twinkleAmt, twinkleSpd, dim }) {
       pos[i * 3] = r * Math.sin(phi) * Math.cos(th);
       pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(th);
       pos[i * 3 + 2] = r * Math.cos(phi);
-      // random unit direction each star flies along when the field shatters
-      const dt = Math.random() * Math.PI * 2, dp = Math.acos(2 * Math.random() - 1);
-      dir[i * 3] = Math.sin(dp) * Math.cos(dt);
-      dir[i * 3 + 1] = Math.sin(dp) * Math.sin(dt);
-      dir[i * 3 + 2] = Math.cos(dp);
       // magnitude distribution: the overwhelming majority are tiny/faint specks
       const mag = Math.pow(Math.random(), 4.0);
       sz[i] = base * (0.3 + mag * 1.7);
@@ -60,7 +54,6 @@ function Layer({ count, rMin, rMax, base, twinkleAmt, twinkleSpd, dim }) {
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    g.setAttribute('aDir', new THREE.BufferAttribute(dir, 3));
     g.setAttribute('aSize', new THREE.BufferAttribute(sz, 1));
     g.setAttribute('aPhase', new THREE.BufferAttribute(ph, 1));
     g.setAttribute('aSpeed', new THREE.BufferAttribute(sp, 1));
@@ -71,9 +64,9 @@ function Layer({ count, rMin, rMax, base, twinkleAmt, twinkleSpd, dim }) {
 
   const mat = useMemo(() => new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, vertexColors: true,
-    uniforms: { uTime: { value: 0 }, uTex: { value: starSprite() }, uAmt: { value: twinkleAmt }, uFade: { value: 1 }, uShatter: { value: 0 } },
-    vertexShader: `attribute float aSize; attribute float aPhase; attribute float aSpeed; attribute float aTwk; attribute vec3 aDir;
-      varying vec3 vC; varying float vT; uniform float uTime; uniform float uAmt; uniform float uShatter;
+    uniforms: { uTime: { value: 0 }, uTex: { value: starSprite() }, uAmt: { value: twinkleAmt }, uFade: { value: 1 } },
+    vertexShader: `attribute float aSize; attribute float aPhase; attribute float aSpeed; attribute float aTwk;
+      varying vec3 vC; varying float vT; uniform float uTime; uniform float uAmt;
       void main(){
         float amp = uAmt * aTwk;                       // per-star twinkle strength
         float osc = 0.5 + 0.5*sin(uTime*aSpeed*${twinkleSpd.toFixed(2)} + aPhase);
@@ -81,10 +74,8 @@ function Layer({ count, rMin, rMax, base, twinkleAmt, twinkleSpd, dim }) {
         // barely-there chromatic shimmer on the twinkling stars (warm <-> cool)
         float ch = sin(uTime*aSpeed*0.6 + aPhase*1.7) * 0.07 * aTwk;
         vC = clamp(color * vec3(1.0 + ch, 1.0, 1.0 - ch), 0.0, 1.0);
-        // shatter: stars burst outward along their own vector, scaled per-star for chaos
-        vec3 pos2 = position + aDir * (uShatter * (26.0 + aPhase*3.0));
-        vec4 mv = modelViewMatrix*vec4(pos2,1.0);
-        gl_PointSize = aSize*(205.0/-mv.z)*(0.82+0.30*vT)*(1.0 + uShatter*1.6);
+        vec4 mv = modelViewMatrix*vec4(position,1.0);
+        gl_PointSize = aSize*(205.0/-mv.z)*(0.82+0.30*vT);
         gl_Position = projectionMatrix*mv; }`,
     fragmentShader: `varying vec3 vC; varying float vT; uniform sampler2D uTex; uniform float uFade;
       void main(){ vec4 t=texture2D(uTex,gl_PointCoord); if(t.a<0.03) discard;
@@ -94,10 +85,8 @@ function Layer({ count, rMin, rMax, base, twinkleAmt, twinkleSpd, dim }) {
   useFrame((state, delta) => {
     if (ref.current) ref.current.rotation.y += delta * 0.0035; // slow parallax drift
     mat.uniforms.uTime.value = state.clock.elapsedTime;
-    // melt away / rebuild the starfield in sync with the glitch (fade + 3D shatter)
-    const k = Math.min(1, delta * 7);
-    mat.uniforms.uFade.value += ((dim ? 0 : 1) - mat.uniforms.uFade.value) * k;
-    mat.uniforms.uShatter.value += ((dim ? 1 : 0) - mat.uniforms.uShatter.value) * Math.min(1, delta * 5.5);
+    // stars simply fade away / fade back in sync with the glitch (no scatter)
+    mat.uniforms.uFade.value += ((dim ? 0 : 1) - mat.uniforms.uFade.value) * Math.min(1, delta * 8);
   });
 
   return <points ref={ref} geometry={geo} material={mat} />;

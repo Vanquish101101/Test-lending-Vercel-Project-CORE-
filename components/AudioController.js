@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { setSfxEnabled } from '@/lib/sfx';
 
 const PHRASES = [
   'Истинно ли то, что ты ищешь здесь...',
@@ -15,6 +16,33 @@ export default function AudioController() {
   const nodesRef = useRef([]);
   const voiceTimer = useRef(null);
   const phraseIdx = useRef(0);
+  const stopBed = useRef(null);
+
+  // radio-transmission crackle bed that wraps the spoken voice -> computer/grunge feel
+  const voiceBed = () => {
+    const ctx = ctxRef.current;
+    if (!ctx) return () => {};
+    const out = ctx.createGain(); out.gain.value = 0;
+    out.connect(masterRef.current || ctx.destination);
+    // band-passed static crackle
+    const src = ctx.createBufferSource();
+    const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 2), ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
+    src.buffer = buf; src.loop = true;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = 0.9;
+    src.connect(bp); bp.connect(out);
+    // low ring-mod tone = robotic comms character
+    const ring = ctx.createOscillator(); ring.type = 'square'; ring.frequency.value = 70;
+    const rg = ctx.createGain(); rg.gain.value = 0.018; ring.connect(rg); rg.connect(out);
+    out.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.12);
+    src.start(); ring.start();
+    return () => {
+      const tn = ctx.currentTime;
+      out.gain.linearRampToValueAtTime(0, tn + 0.18);
+      setTimeout(() => { try { src.stop(); ring.stop(); } catch (e) {} }, 280);
+    };
+  };
 
   const buildAmbient = () => {
     const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -69,12 +97,18 @@ export default function AudioController() {
     const u = new SpeechSynthesisUtterance(PHRASES[phraseIdx.current % PHRASES.length]);
     phraseIdx.current++;
     u.lang = 'ru-RU';
-    u.rate = 0.82;
-    u.pitch = 1.05;
+    // husky, computer-grunge delivery: slow + lowered pitch for a raspy machine voice
+    u.rate = 0.76;
+    u.pitch = 0.8;
+    u.volume = 0.95;
     const voices = window.speechSynthesis.getVoices();
-    const ru = voices.find((v) => /ru/i.test(v.lang) && /female|женск|Irina|Milena|Svetlana/i.test(v.name))
+    const ru = voices.find((v) => /ru/i.test(v.lang) && /female|женск|Irina|Milena|Svetlana|Tatyana|Alyona/i.test(v.name))
       || voices.find((v) => /ru/i.test(v.lang));
     if (ru) u.voice = ru;
+    // wrap the voice in a radio-comms crackle bed
+    u.onstart = () => { if (stopBed.current) stopBed.current(); stopBed.current = voiceBed(); };
+    u.onend = () => { if (stopBed.current) { stopBed.current(); stopBed.current = null; } };
+    u.onerror = u.onend;
     window.speechSynthesis.speak(u);
   };
 
@@ -99,6 +133,7 @@ export default function AudioController() {
     setOn((prev) => {
       const next = !prev;
       if (next) start(); else stop();
+      setSfxEnabled(next); // glitch SFX follows the sound toggle
       return next;
     });
   };

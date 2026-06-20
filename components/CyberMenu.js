@@ -14,8 +14,9 @@ export default function CyberMenu() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const topItems = THEMES.slice(0, 4);
-  const topItems2 = THEMES.slice(4);
+  // left plate: Мышление / Маркетинг / Заработок — "Веб дизайн" moved to the right plate
+  const topItems = THEMES.slice(0, 3);
+  const topItems2 = THEMES.slice(3);
 
   return (
     <>

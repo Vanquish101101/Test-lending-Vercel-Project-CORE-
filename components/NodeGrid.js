@@ -81,7 +81,30 @@ export default function NodeGrid() {
   }, []);
 
   const dots = useMemo(() => fibSphere(90, ORBIT_R), []);
-  const themePts = useMemo(() => fibSphere(THEMES.length, ORBIT_R), []);
+  // place the theme nodes ON real grid vertices (icosahedron corners), evenly spread
+  // via farthest-point sampling — so they sit in the structure, not floating off-grid
+  const themePts = useMemo(() => {
+    const ico = new THREE.IcosahedronGeometry(ORBIT_R, 0);
+    const p = ico.attributes.position;
+    const seen = new Set(); const v = [];
+    for (let i = 0; i < p.count; i++) {
+      const pt = new THREE.Vector3().fromBufferAttribute(p, i);
+      const k = `${pt.x.toFixed(2)},${pt.y.toFixed(2)},${pt.z.toFixed(2)}`;
+      if (seen.has(k)) continue; seen.add(k); v.push(pt);
+    }
+    const chosen = [v[0]];
+    while (chosen.length < THEMES.length && chosen.length < v.length) {
+      let best = null, bestD = -1;
+      for (const c of v) {
+        if (chosen.includes(c)) continue;
+        let d = Infinity;
+        for (const s of chosen) d = Math.min(d, c.distanceToSquared(s));
+        if (d > bestD) { bestD = d; best = c; }
+      }
+      chosen.push(best);
+    }
+    return chosen;
+  }, []);
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;

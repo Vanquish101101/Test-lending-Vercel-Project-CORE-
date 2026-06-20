@@ -4,9 +4,8 @@ import { useFrame } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { THEMES } from '@/lib/themes';
-import NodePreview from './NodePreview';
 
-const ORBIT_R = 2.15;
+const ORBIT_R = 2.35;
 
 function fibSphere(n, r) {
   const pts = [];
@@ -20,44 +19,64 @@ function fibSphere(n, r) {
   return pts;
 }
 
-function ThemeNode({ theme, pos }) {
+function ThemePreview({ id, color }) {
+  // topic-relevant animated mini-preview
+  const byId = {
+    webdesign: <div className="pv-web"><span /><span /><span /><i /></div>,
+    '3d': <div className="pv-3d"><div className="cube"><span /><span /><span /><span /><span /><span /></div></div>,
+    audio: <div className="pv-eq">{Array.from({ length: 9 }).map((_, i) => <b key={i} style={{ animationDelay: `${i * 0.08}s` }} />)}</div>,
+    video: <div className="pv-film"><div className="strip" />{Array.from({ length: 5 }).map((_, i) => <u key={i} />)}</div>,
+    marketing: <div className="pv-bars">{[0.5, 0.8, 0.4, 1, 0.65].map((h, i) => <b key={i} style={{ '--h': h, animationDelay: `${i * 0.12}s` }} />)}</div>,
+    earn: <div className="pv-chart"><svg viewBox="0 0 100 50"><polyline points="0,45 20,38 40,42 60,22 80,26 100,6" /></svg><em>$</em></div>,
+    thinking: <div className="pv-net">{Array.from({ length: 6 }).map((_, i) => <i key={i} style={{ animationDelay: `${i * 0.15}s` }} />)}</div>,
+    game: <div className="pv-game"><span className="player" /><span className="coin" /></div>,
+  };
+  return <div className="pv-wrap" style={{ '--c': color }}>{byId[id] || <div className="pv-eq"><b /><b /><b /></div>}</div>;
+}
+
+function ThemeNode({ theme, pos, onHover }) {
   const [hovered, setHovered] = useState(false);
   const mesh = useRef();
+  const halo = useRef();
   const dir = useMemo(() => pos.clone().normalize(), [pos]);
-  // pull the label INWARD toward screen centre (camera looks at origin) so it stays
-  // within the viewport and clear of the HUD edges; the leader line keeps the link
-  const labelPos = useMemo(() => pos.clone().multiplyScalar(0.8), [pos]);
+  const labelPos = useMemo(() => pos.clone().add(dir.clone().multiplyScalar(0.6)), [pos, dir]);
 
   useFrame((state) => {
+    const t = state.clock.elapsedTime;
     if (mesh.current) {
-      const base = hovered ? 0.13 : 0.07;
-      const pulse = 1 + Math.sin(state.clock.elapsedTime * 2 + pos.x) * 0.12;
-      mesh.current.scale.setScalar(base * pulse * (hovered ? 1.6 : 1));
+      const base = hovered ? 0.16 : 0.075;
+      const pulse = 1 + Math.sin(t * 2 + pos.x * 3) * 0.14;
+      mesh.current.scale.setScalar(base * pulse);
+    }
+    if (halo.current) {
+      const s = (hovered ? 0.34 : 0.16) * (1 + Math.sin(t * 2 + pos.y) * 0.18);
+      halo.current.scale.setScalar(s);
+      halo.current.material.opacity = hovered ? 0.5 : 0.22;
     }
   });
 
+  const set = (v) => { setHovered(v); onHover(v); document.body.style.cursor = v ? 'pointer' : 'auto'; };
+
   return (
     <group>
-      <Line points={[pos, labelPos]} color={hovered ? theme.color : '#3a6caa'} lineWidth={hovered ? 1.6 : 0.8} transparent opacity={hovered ? 0.95 : 0.5} />
-      <mesh
-        ref={mesh}
-        position={pos}
-        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
-        onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
-      >
+      <Line points={[pos, labelPos]} color={hovered ? theme.color : '#3f72b8'} lineWidth={hovered ? 1.8 : 0.8} transparent opacity={hovered ? 0.95 : 0.45} />
+      <mesh ref={halo} position={pos}>
         <sphereGeometry args={[1, 16, 16]} />
-        <meshStandardMaterial color={theme.color} emissive={theme.color} emissiveIntensity={hovered ? 2.4 : 1.1} toneMapped={false} />
+        <meshBasicMaterial color={theme.color} transparent opacity={0.2} toneMapped={false} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
-      <Html position={labelPos} center distanceFactor={9} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+      <mesh ref={mesh} position={pos}
+        onPointerOver={(e) => { e.stopPropagation(); set(true); }}
+        onPointerOut={() => set(false)}>
+        <sphereGeometry args={[1, 18, 18]} />
+        <meshStandardMaterial color={theme.color} emissive={theme.color} emissiveIntensity={hovered ? 3.2 : 1.4} toneMapped={false} />
+      </mesh>
+      <Html position={labelPos} center distanceFactor={8.5} zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
         <div className={`node-label ${hovered ? 'on' : ''}`} style={{ '--c': theme.color }}>
           <div className="nl-ru">{theme.ru}</div>
           <div className="nl-en">{theme.en}</div>
           <div className="nl-reveal">
             <div className="nl-desc">{theme.short}</div>
-            <div className="nl-video">
-              <NodePreview id={theme.id} c={theme.color} />
-              <span />
-            </div>
+            <ThemePreview id={theme.id} color={theme.color} />
           </div>
         </div>
       </Html>
@@ -67,91 +86,72 @@ function ThemeNode({ theme, pos }) {
 
 export default function NodeGrid() {
   const group = useRef();
-  const mainMat = useRef();
-  const fineMat = useRef();
+  const hoverCount = useRef(0);
+  const [, force] = useState(0);
 
-  // primary cage (the net you liked) + a finer inner subdivision for "serious" density
-  const netGeo = useMemo(() => new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(ORBIT_R, 2)), []);
-  const fineGeo = useMemo(() => new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(ORBIT_R * 0.998, 3)), []);
-  // glowing vertices at the structural nodes of the cage = serious tech read
-  const verts = useMemo(() => {
-    const ico = new THREE.IcosahedronGeometry(ORBIT_R, 2);
-    const p = ico.attributes.position;
-    const seen = new Set(); const out = [];
-    for (let i = 0; i < p.count; i++) {
-      const v = new THREE.Vector3().fromBufferAttribute(p, i);
-      const k = `${v.x.toFixed(2)},${v.y.toFixed(2)},${v.z.toFixed(2)}`;
-      if (seen.has(k)) continue; seen.add(k); out.push(v);
-    }
-    return out;
-  }, []);
-
-  const dots = useMemo(() => fibSphere(90, ORBIT_R), []);
-  // place the theme nodes ON real grid vertices (icosahedron corners), evenly spread
-  // via farthest-point sampling — so they sit in the structure, not floating off-grid
+  const pts = useMemo(() => fibSphere(140, ORBIT_R), []);
   const themePts = useMemo(() => {
-    const ico = new THREE.IcosahedronGeometry(ORBIT_R, 0);
-    const p = ico.attributes.position;
-    const seen = new Set(); const v = [];
-    for (let i = 0; i < p.count; i++) {
-      const pt = new THREE.Vector3().fromBufferAttribute(p, i);
-      const k = `${pt.x.toFixed(2)},${pt.y.toFixed(2)},${pt.z.toFixed(2)}`;
-      if (seen.has(k)) continue; seen.add(k); v.push(pt);
-    }
-    const chosen = [v[0]];
-    while (chosen.length < THEMES.length && chosen.length < v.length) {
-      let best = null, bestD = -1;
-      for (const c of v) {
-        if (chosen.includes(c)) continue;
-        let d = Infinity;
-        for (const s of chosen) d = Math.min(d, c.distanceToSquared(s));
-        if (d > bestD) { bestD = d; best = c; }
-      }
-      chosen.push(best);
-    }
-    return chosen;
+    const base = fibSphere(THEMES.length, ORBIT_R);
+    return base;
   }, []);
+
+  // plexus: connect each point to its 3 nearest neighbors (unique pairs)
+  const lineGeo = useMemo(() => {
+    const positions = [];
+    const seen = new Set();
+    for (let i = 0; i < pts.length; i++) {
+      const d = [];
+      for (let j = 0; j < pts.length; j++) if (i !== j) d.push([pts[i].distanceTo(pts[j]), j]);
+      d.sort((a, b) => a[0] - b[0]);
+      for (let k = 0; k < 3; k++) {
+        const j = d[k][1];
+        const key = i < j ? `${i}_${j}` : `${j}_${i}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        positions.push(pts[i].x, pts[i].y, pts[i].z, pts[j].x, pts[j].y, pts[j].z);
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    return g;
+  }, [pts]);
+
+  const dotGeo = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pts.flatMap((p) => [p.x, p.y, p.z]), 3));
+    return g;
+  }, [pts]);
 
   useFrame((state, delta) => {
-    const t = state.clock.elapsedTime;
-    if (group.current) {
-      group.current.rotation.y -= delta * 0.07;
-      group.current.rotation.x = Math.sin(t * 0.1) * 0.08;
+    if (!group.current) return;
+    group.current.rotation.y -= delta * 0.035;
+    group.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.08) * 0.06;
+    // shudder when a theme node is hovered
+    if (hoverCount.current > 0) {
+      const t = state.clock.elapsedTime * 40;
+      group.current.position.x = Math.sin(t) * 0.012;
+      group.current.position.y = Math.cos(t * 1.3) * 0.012;
+      const s = 1.03 + Math.sin(t * 0.7) * 0.006;
+      group.current.scale.setScalar(s);
+    } else {
+      group.current.position.x *= 0.85;
+      group.current.position.y *= 0.85;
+      group.current.scale.setScalar(THREE.MathUtils.lerp(group.current.scale.x, 1, 0.1));
     }
-    // subtle live energy pulse along the grid
-    if (mainMat.current) mainMat.current.opacity = 0.34 + Math.sin(t * 0.9) * 0.06;
-    if (fineMat.current) fineMat.current.opacity = 0.10 + Math.sin(t * 0.9 + 1.5) * 0.04;
   });
+
+  const onHover = (v) => { hoverCount.current = Math.max(0, hoverCount.current + (v ? 1 : -1)); };
 
   return (
     <group ref={group}>
-      {/* main net — additive glow, fog gives real depth fade */}
-      <lineSegments geometry={netGeo}>
-        <lineBasicMaterial ref={mainMat} color={'#3a9bef'} transparent opacity={0.34} blending={THREE.AdditiveBlending} fog />
+      <lineSegments geometry={lineGeo}>
+        <lineBasicMaterial color={'#3f8fe0'} transparent opacity={0.28} blending={THREE.AdditiveBlending} depthWrite={false} />
       </lineSegments>
-      {/* finer inner lattice for density / seriousness */}
-      <lineSegments geometry={fineGeo}>
-        <lineBasicMaterial ref={fineMat} color={'#1f6fcf'} transparent opacity={0.1} blending={THREE.AdditiveBlending} fog />
-      </lineSegments>
-
-      {/* structural glowing vertices */}
-      {verts.map((p, i) => (
-        <mesh key={`v${i}`} position={p}>
-          <sphereGeometry args={[0.022, 10, 10]} />
-          <meshBasicMaterial color={'#bfe6ff'} transparent opacity={0.9} toneMapped={false} />
-        </mesh>
-      ))}
-
-      {/* faint scattered grid points */}
-      {dots.map((p, i) => (
-        <mesh key={`d${i}`} position={p}>
-          <sphereGeometry args={[0.012, 6, 6]} />
-          <meshBasicMaterial color={'#6fd0ff'} transparent opacity={0.55} toneMapped={false} />
-        </mesh>
-      ))}
-
+      <points geometry={dotGeo}>
+        <pointsMaterial color={'#8fdcff'} size={0.045} sizeAttenuation transparent opacity={0.9} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </points>
       {THEMES.map((t, i) => (
-        <ThemeNode key={t.id} theme={t} pos={themePts[i]} />
+        <ThemeNode key={t.id} theme={t} pos={themePts[i]} onHover={onHover} />
       ))}
     </group>
   );

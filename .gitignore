@@ -10,8 +10,3 @@ npm-debug.log*
 .idea
 
 .vercel
-
-# local dev server logs
-.devserver.log
-.devserver.err.log
-.dev.log

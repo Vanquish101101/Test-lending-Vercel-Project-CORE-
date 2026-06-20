@@ -116,6 +116,109 @@ const TEAM = [
   ['Медиа-продюсер', 'Аудио · видео · продакшн'],
 ];
 
+/* ===== MIDDLE — таймлайн 7 шагов (из 1.6.0), once:false ===== */
+const tlEASE = [0.22, 1, 0.36, 1];
+const tlStg = { hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.08 } } };
+const tlWipe = (from) => ({ hidden: { opacity: 0, clipPath: from === 'right' ? 'inset(0 0 0 100%)' : 'inset(0 100% 0 0)' }, show: { opacity: 1, clipPath: 'inset(0 0 0 0)', transition: { duration: 0.9, ease: tlEASE } } });
+const TL_STEPS = [
+  ['01', 'Фундамент', 'Мышление и ментальные модели: фокус, стратегия и решения.'],
+  ['02', 'Рынок', 'Маркетинг и психология влияния: воронки и контент.'],
+  ['03', 'Монетизация', 'Модели дохода: упаковка навыка в устойчивый поток.'],
+  ['04', 'Продукт', 'Веб-разработка: лендинги, сайты и приложения.'],
+  ['05', 'Визуал и медиа', '3D, аудио и видео: полноценный продакшн.'],
+  ['06', 'Интерактив', 'Game-дизайн и геймификация: вовлечение.'],
+  ['07', 'Запуск и рост', 'Деплой, аналитика и масштабирование.'],
+];
+function TLSteps() {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 75%', 'end 55%'] });
+  const fill = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
+  return (
+    <div className="rx-tl" ref={ref}>
+      <div className="rx-tl-track"><motion.div className="rx-tl-fill" style={{ height: fill }} /></div>
+      <motion.div className="rx-tl-items" variants={tlStg} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.1 }}>
+        {TL_STEPS.map(([n, t, d], i) => (
+          <motion.div className={`rx-tl-item ${i % 2 ? 'r' : 'l'}`} key={n} variants={tlWipe(i % 2 ? 'right' : 'left')}>
+            <span className="rx-tl-dot" />
+            <div className="rx-tl-card"><div className="rx-tl-num cyber-font">{n}</div><h3>{t}</h3><p>{d}</p></div>
+          </motion.div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+/* ===== ГРУППА 1.5.0 (классы/имена переименованы, once:false) ===== */
+const EASE5 = [0.16, 1, 0.3, 1];
+const fly = (dir = 'up') => ({
+  hidden: { opacity: 0, x: dir === 'left' ? -160 : dir === 'right' ? 160 : 0, y: dir === 'up' ? 90 : dir === 'down' ? -90 : 0, scale: dir === 'scale' ? 0.8 : 1, rotate: dir === 'left' ? -5 : dir === 'right' ? 5 : 0, filter: 'blur(10px)' },
+  show: { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0, filter: 'blur(0px)', transition: { duration: 0.9, ease: EASE5 } },
+});
+const stg5 = { hidden: {}, show: { transition: { staggerChildren: 0.1, delayChildren: 0.05 } } };
+const vp5 = { once: false, amount: 0.25 };
+function Parallax5({ speed = 80, className, style, children }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const y = useTransform(scrollYProgress, [0, 1], [speed, -speed]);
+  return <motion.div ref={ref} className={className} style={{ ...style, y }} aria-hidden>{children}</motion.div>;
+}
+function Reveal5({ dir = 'up', className, children, style }) {
+  return <motion.div className={className} style={style} variants={fly(dir)} initial="hidden" whileInView="show" viewport={vp5}>{children}</motion.div>;
+}
+function V5Head({ label, title, hi, sub }) {
+  return (
+    <motion.div className="v5-head" variants={stg5} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.5 }}>
+      <motion.span className="sec-label cyber-font" variants={fly('up')}>{label}</motion.span>
+      <motion.h2 className="sec-title" variants={fly('up')}>{title} {hi && <span className="hi">{hi}</span>}</motion.h2>
+      {sub && <motion.p className="sec-sub" variants={fly('up')}>{sub}</motion.p>}
+    </motion.div>
+  );
+}
+function V5Decor({ variant = 'a' }) {
+  return (
+    <div className="decor" aria-hidden>
+      <Parallax5 speed={120} className="orb o1" /><Parallax5 speed={-90} className="orb o2" />
+      <motion.i className={`shard s1 ${variant}`} initial={{ opacity: 0, x: -240, rotate: -25 }} whileInView={{ opacity: 0.8, x: 0, rotate: 0 }} viewport={{ once: false, amount: 0.3 }} transition={{ duration: 1.1, ease: EASE5 }} />
+      <motion.i className={`shard s2 ${variant}`} initial={{ opacity: 0, x: 240, rotate: 25 }} whileInView={{ opacity: 0.7, x: 0, rotate: 0 }} viewport={{ once: false, amount: 0.3 }} transition={{ duration: 1.1, ease: EASE5, delay: 0.1 }} />
+      <Parallax5 speed={160} className="streak k1" /><Parallax5 speed={-130} className="streak k2" />
+    </div>
+  );
+}
+function BackdropField5() {
+  const { scrollYProgress } = useScroll();
+  const y1 = useTransform(scrollYProgress, [0, 1], [0, -400]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, 300]);
+  return <div className="bdrop" aria-hidden><motion.div className="bdrop-grid" style={{ y: y1 }} /><motion.div className="bdrop-glow g1" style={{ y: y2 }} /><motion.div className="bdrop-glow g2" style={{ y: y1 }} /></div>;
+}
+const WHY5 = [
+  ['◆', 'Единая карта', 'Восемь направлений связаны в одну систему — видно, как мышление переходит в рынок, продукт и запуск.'],
+  ['⚡', 'От фундамента к запуску', 'Путь выстроен: сначала мышление и фокус, затем рынок, создание продукта и масштабирование.'],
+  ['⬡', 'Практика, а не теория', 'Каждый узел ведёт к инструментам и заданиям. Учишься — применяешь — получаешь результат.'],
+  ['◎', 'Живая экосистема', 'Сообщество, AI-инструменты и менторство держат тебя в движении 24/7.'],
+];
+const S5 = [
+  ['01', 'Мышление', 'Фундамент: ментальные модели, фокус, принятие решений.'],
+  ['02', 'Рынок', 'Маркетинг и заработок: воронки, контент, монетизация.'],
+  ['03', 'Создание', 'Веб, 3D, аудио, видео, игры — собираешь продукт.'],
+  ['04', 'Запуск', 'Деплой, рост, масштабирование. Система работает на тебя.'],
+];
+const T5 = [
+  { name: 'Старт', price: '₽0', tag: '', feats: ['Карта восьми направлений', 'Базовые материалы', 'Доступ к сообществу', 'Первый экран навигации'] },
+  { name: 'Система', price: '₽4 900', tag: 'популярный', feats: ['Все направления полностью', 'Практические задания', 'AI-инструменты внутри', 'Разборы и обратная связь', 'Обновления навсегда'] },
+  { name: 'Полный доступ', price: '₽14 900', tag: '', feats: ['Всё из «Системы»', 'Менторство 1-на-1', 'Закрытые live-сессии', 'Доступ к департаменту разработки', 'Приоритетная поддержка'] },
+];
+const EX5 = [
+  ['🤖', 'AI-инструменты', 'Роутинг моделей, генерация текста, аудио и графики.'],
+  ['👥', 'Сообщество', 'Живой контур: разборы, нетворк, совместные запуски.'],
+  ['🎓', 'Менторство', 'Сопровождение пути от идеи до результата.'],
+  ['🛰', 'Live-сессии', 'Закрытые эфиры по направлениям и кейсам.'],
+];
+const TM5 = [
+  ['Стратегия', 'Research · Market · SEO'], ['Дизайн / Арт', 'UX · UI · Motion · 3D'],
+  ['Разработка', 'Web · WebGL · Game'], ['Контент / Медиа', 'Copy · Audio · Video'],
+  ['Маркетинг', 'Growth · SMM'], ['DevOps / QA', 'Deploy · Test · Observability'],
+];
+
 export default function Sections() {
   return (
     <div className="content">
@@ -233,6 +336,107 @@ export default function Sections() {
           <p>Разберём твою цель и за 15 минут соберём маршрут из направлений именно под тебя.</p>
           <a href="#footer" className="cta-btn">Связаться</a>
         </motion.div>
+      </section>
+
+      {/* ===== ПО СЕРЕДИНЕ: таймлайн 7 шагов (из 1.6.0) ===== */}
+      <section className="section sec rx-sec" id="timeline7">
+        <motion.div className="rx-head" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: false, amount: 0.5 }} transition={{ duration: 0.7, ease: tlEASE }}>
+          <span className="rx-label cyber-font">МАРШРУТ</span>
+          <h2 className="rx-title">Семь шагов <span className="rx-w hi">от хаоса к запуску</span></h2>
+          <p className="rx-sub">Центральная линия заливается по мере прокрутки — путь от фундамента к масштабу.</p>
+        </motion.div>
+        <TLSteps />
+      </section>
+
+      {/* ===== ГРУППА 1.5.0 (traffictime, родная fly-анимация + сеточный задник) ===== */}
+      <BackdropField5 />
+
+      <section className="section sec" id="why5">
+        <V5Decor variant="a" />
+        <V5Head label="ПОЧЕМУ C.O.R.E." title="Не курс — операционная система" hi="мышления и навыков" sub="Восемь направлений работают как одна машина: от того, как ты думаешь, до того, что ты запускаешь." />
+        <motion.div className="why-grid" variants={stg5} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.2 }}>
+          {WHY5.map(([ic, t, d], i) => (
+            <motion.div className="why-card" key={t} variants={fly(i % 2 ? 'right' : 'left')}>
+              <span className="ic">{ic}</span><h3>{t}</h3><p>{d}</p><span className="card-glow" />
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      <section className="section sec" id="themes5">
+        <V5Decor variant="b" />
+        <V5Head label="НАПРАВЛЕНИЯ" title="Восемь векторов" hi="одной системы" sub="Те же узлы, что на сетке первого экрана — теперь развёрнуто. Наведи, чтобы раскрыть суть." />
+        <motion.div className="dir-grid" variants={stg5} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.15 }}>
+          {THEMES.map((t, i) => (
+            <motion.a href="#themes5" id={`d5-${t.id}`} key={t.id} className="dir-card" style={{ '--c': t.color }} variants={fly(i % 2 ? 'up' : 'scale')}>
+              <span className="num cyber-font">{`0${i + 1}`}</span><span className="dot" />
+              <div className="en cyber-font">{t.en}</div><div className="ru">{t.ru}</div><div className="sh">{t.short}</div><div className="reveal">{t.desc}</div><span className="card-glow" />
+            </motion.a>
+          ))}
+        </motion.div>
+      </section>
+
+      <section className="section sec" id="how5">
+        <V5Decor variant="a" />
+        <V5Head label="КАК ЭТО РАБОТАЕТ" title="Четыре шага" hi="от хаоса к запуску" sub="Последовательный путь: фундамент → рынок → продукт → масштаб." />
+        <div className="steps">
+          <Parallax5 speed={40} className="steps-line" />
+          <motion.div className="steps-row" variants={stg5} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.2 }}>
+            {S5.map(([n, t, d], i) => (
+              <motion.div className="step" key={n} variants={fly(i % 2 ? 'up' : 'down')}>
+                <div className="step-num cyber-font">{n}</div><h3>{t}</h3><p>{d}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="section sec" id="benefits5">
+        <V5Decor variant="b" />
+        <V5Head label="УРОВНИ" title="Выбери глубину" hi="погружения" sub="От бесплатной карты до полного доступа с менторством и департаментом разработки." />
+        <motion.div className="tiers" variants={stg5} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.15 }}>
+          {T5.map((p, i) => (
+            <motion.div className={`tier ${p.tag ? 'featured' : ''}`} key={p.name} variants={fly(i === 0 ? 'left' : i === 2 ? 'right' : 'up')} whileHover={{ y: -8 }}>
+              {p.tag && <span className="tier-tag cyber-font">{p.tag}</span>}
+              <div className="tier-name">{p.name}</div>
+              <div className="tier-price cyber-font">{p.price}<span>/мес</span></div>
+              <ul>{p.feats.map((f) => <li key={f}>{f}</li>)}</ul>
+              <a className="tier-btn cyber-font" href="#cta5">Выбрать</a><span className="card-glow" />
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      <section className="section sec" id="extra5">
+        <V5Decor variant="a" />
+        <V5Head label="ДОПОЛНИТЕЛЬНО" title="Инструменты" hi="внутри системы" />
+        <motion.div className="extra-grid" variants={stg5} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.2 }}>
+          {EX5.map(([ic, t, d]) => (
+            <motion.div className="extra-card" key={t} variants={fly('scale')}><span className="ic">{ic}</span><h4>{t}</h4><p>{d}</p></motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      <section className="section sec" id="about5">
+        <V5Decor variant="b" />
+        <V5Head label="КОМАНДА" title="Те, кто держит" hi="систему" sub="Полнопрофильный департамент: стратегия, дизайн, разработка, медиа, маркетинг и эксплуатация." />
+        <motion.div className="v5-team-grid" variants={stg5} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.15 }}>
+          {TM5.map(([t, d], i) => (
+            <motion.div className="v5-team-card" key={t} variants={fly(i % 2 ? 'right' : 'left')}>
+              <div className="av cyber-font">{t[0]}</div>
+              <div><div className="v5-team-role">{t}</div><div className="team-sub">{d}</div></div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      <section className="section sec cta-final" id="cta5">
+        <V5Decor variant="a" />
+        <Reveal5 dir="scale" className="cta-wrap">
+          <h2 className="cta-title">Готов войти в <span className="hi">систему</span>?</h2>
+          <p>Начни с карты направлений — за 15 минут увидишь свой путь от мышления к запуску.</p>
+          <a className="cta-btn cyber-font" href="#themes5">Войти в Project C.O.R.E.</a>
+        </Reveal5>
       </section>
 
       <footer className="footer" id="footer">

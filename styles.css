@@ -1,0 +1,188 @@
+/* =========================================================================
+   Project CORE — HUD Menu Lab v2
+   Источник геометрии панелей: реальные пиксели img/ref-0003.png (1299x606).
+   Верхняя панель = верхний срез картинки (background-position: top).
+   Нижняя панель  = нижний срез той же картинки (background-position: bottom),
+   так в обеих панелях оказываются настоящие угловатые HUD-полосы референса.
+   Центр (~40vh) остаётся открытым и тёмным — туда позже встанет планета.
+   ========================================================================= */
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --cyan:#5fe8ff;
+  --cyan-bright:#bdf6ff;
+  --bg-deep:#070a1a;
+  --bg-mid:#11102a;
+  --panel-h:30vh;
+  --center-h:40vh;
+}
+
+html,body{height:100%}
+
+body{
+  font-family:"Consolas","SF Mono","Courier New",monospace;
+  background:
+    radial-gradient(140% 100% at 50% 50%, #161435 0%, #0c0c24 45%, #05050f 100%);
+  color:#eafcff;
+  min-height:100vh;
+  overflow:hidden;
+  position:relative;
+}
+
+/* ---------------------------------------------------------------------
+   ПАНЕЛИ — фон из реальных пикселей референса
+   --------------------------------------------------------------------- */
+.hud{
+  position:fixed;
+  left:0; width:100%;
+  height:var(--panel-h);
+  z-index:5;
+  background-image:url("img/ref-0003.png");
+  background-repeat:no-repeat;
+  background-size:cover;
+  overflow:hidden;
+}
+
+.hud-top{
+  top:0;
+  background-position:center top;
+  /* мягкое растворение нижней кромки панели в тёмный центр */
+  -webkit-mask-image:linear-gradient(to bottom, #000 78%, transparent 100%);
+          mask-image:linear-gradient(to bottom, #000 78%, transparent 100%);
+}
+
+.hud-bottom{
+  bottom:0;
+  background-position:center bottom;
+  -webkit-mask-image:linear-gradient(to top, #000 78%, transparent 100%);
+          mask-image:linear-gradient(to top, #000 78%, transparent 100%);
+}
+
+/* лёгкий бегущий блик по полосе — оживляет статичную картинку */
+.hud::after{
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none;
+  background:linear-gradient(100deg, transparent 35%, rgba(170,240,255,.14) 50%, transparent 65%);
+  background-size:280% 100%;
+  animation:sweep 7s linear infinite;
+  mix-blend-mode:screen;
+}
+.hud-bottom::after{ animation-delay:1.4s; }
+
+@keyframes sweep{
+  from{ background-position:160% 0; }
+  to{ background-position:-60% 0; }
+}
+
+/* ---------------------------------------------------------------------
+   ЦЕНТР — тёмный, открытый, лёгкий гекс-паттерн, как на референсе
+   --------------------------------------------------------------------- */
+.stage{
+  position:fixed;
+  left:0; right:0;
+  top:var(--panel-h);
+  bottom:var(--panel-h);
+  z-index:1;
+  background:
+    radial-gradient(60% 80% at 50% 50%, rgba(40,40,90,.18) 0%, rgba(5,5,15,0) 70%),
+    #06050f;
+}
+
+.hexfield{
+  position:absolute; inset:0;
+  opacity:.35;
+  background-image:
+    linear-gradient(30deg, rgba(95,232,255,.05) 1px, transparent 1px),
+    linear-gradient(150deg, rgba(95,232,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(95,232,255,.04) 1px, transparent 1px);
+  background-size: 44px 76px, 44px 76px, 44px 76px;
+  mask-image:radial-gradient(70% 70% at 50% 50%, #000 55%, transparent 100%);
+  -webkit-mask-image:radial-gradient(70% 70% at 50% 50%, #000 55%, transparent 100%);
+}
+
+/* ---------------------------------------------------------------------
+   ПУНКТЫ МЕНЮ — поверх панелей
+   --------------------------------------------------------------------- */
+.menu-row{
+  position:relative;
+  z-index:6;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(10px, 2.4vw, 36px);
+  flex-wrap:wrap;
+  padding:0 4vw;
+}
+
+.menu-top{ padding-bottom:1.4vh; }
+.menu-bottom{ padding-top:1.2vh; }
+
+.item{
+  position:relative;
+  text-decoration:none;
+  color:var(--cyan-bright);
+  font-weight:600;
+  letter-spacing:.06em;
+  font-size:clamp(12px, 1.25vw, 17px);
+  text-transform:uppercase;
+  text-shadow:
+    0 0 4px rgba(170,240,255,.9),
+    0 0 14px rgba(95,232,255,.55);
+  padding:.4em .2em;
+  opacity:0;
+  transform:translateY(10px);
+  animation:itemIn .55s ease forwards;
+  animation-delay:var(--d,0s);
+  transition:color .2s, text-shadow .2s, transform .2s;
+}
+
+.item.small{
+  font-size:clamp(10.5px, 1.0vw, 14px);
+  font-weight:500;
+  letter-spacing:.04em;
+  color:#bfe9f5;
+  text-shadow:
+    0 0 3px rgba(150,225,255,.7),
+    0 0 10px rgba(95,232,255,.35);
+}
+
+.item::after{
+  content:"";
+  position:absolute;
+  left:50%; bottom:-.3em;
+  width:0%; height:1px;
+  background:var(--cyan);
+  box-shadow:0 0 6px var(--cyan);
+  transform:translateX(-50%);
+  transition:width .25s ease;
+}
+
+.item:hover{
+  color:#ffffff;
+  text-shadow:
+    0 0 6px #fff,
+    0 0 18px var(--cyan-bright),
+    0 0 34px var(--cyan);
+  transform:translateY(-2px);
+}
+.item:hover::after{ width:80%; }
+
+@keyframes itemIn{
+  from{ opacity:0; transform:translateY(10px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+
+/* ---------------------------------------------------------------------
+   адаптив
+   --------------------------------------------------------------------- */
+@media (max-width: 720px){
+  :root{ --panel-h:24vh; --center-h:52vh; }
+  .menu-row{ gap:3vw 5vw; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{ animation:none !important; transition:none !important; }
+}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Project CORE — HUD меню v2 (ref-0003)</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ВЕРХНЯЯ ПАНЕЛЬ: верхний срез ref-0003.png -->
+<header class="hud hud-top">
+  <nav class="menu-row menu-top" aria-label="Основные направления">
+    <a class="item" href="#" style="--d:.05s">Мышление</a>
+    <a class="item" href="#" style="--d:.10s">Маркетинг</a>
+    <a class="item" href="#" style="--d:.15s">Заработок</a>
+    <a class="item" href="#" style="--d:.20s">Веб дизайн</a>
+    <a class="item" href="#" style="--d:.25s">3D</a>
+    <a class="item" href="#" style="--d:.30s">Аудио</a>
+    <a class="item" href="#" style="--d:.35s">Видео</a>
+    <a class="item" href="#" style="--d:.40s">Game</a>
+  </nav>
+</header>
+
+<!-- ЦЕНТР: тёмный, открытый — сюда позже встанет планета hero -->
+<main class="stage" aria-hidden="true">
+  <div class="hexfield"></div>
+</main>
+
+<!-- НИЖНЯЯ ПАНЕЛЬ: нижний срез ref-0003.png -->
+<footer class="hud hud-bottom">
+  <nav class="menu-row menu-bottom" aria-label="Служебные разделы">
+    <a class="item small" href="#" style="--d:.10s">О нас</a>
+    <a class="item small" href="#" style="--d:.18s">Контакты</a>
+    <a class="item small" href="#" style="--d:.26s">Юридическая информация</a>
+  </nav>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

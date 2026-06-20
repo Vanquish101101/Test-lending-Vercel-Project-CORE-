@@ -4,21 +4,13 @@ import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { THEMES } from '@/lib/themes';
 
 // ---- reveal variants (cinematic, directional) ----
-// Появление каждого блока — быстрое и чёткое, но межкарточный сдвиг (stagger + delay i*X)
-// держим заметным: соседние элементы выезжают по очереди и «проглядывают», а не сливаются.
-const fromBottom = { hidden: { opacity: 0, y: 60 }, show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.65, delay: i * 0.13, ease: [0.22, 1, 0.36, 1] } }) };
-const fromLeft = { hidden: { opacity: 0, x: -150, rotate: -3 }, show: (i = 0) => ({ opacity: 1, x: 0, rotate: 0, transition: { duration: 0.78, delay: i * 0.15, ease: [0.22, 1, 0.36, 1] } }) };
-const fromRight = { hidden: { opacity: 0, x: 150, rotate: 3 }, show: (i = 0) => ({ opacity: 1, x: 0, rotate: 0, transition: { duration: 0.78, delay: i * 0.15, ease: [0.22, 1, 0.36, 1] } }) };
-const popIn = { hidden: { opacity: 0, scale: 0.78, y: 60 }, show: (i = 0) => ({ opacity: 1, scale: 1, y: 0, transition: { duration: 0.72, delay: i * 0.15, ease: [0.22, 1, 0.36, 1] } }) };
-const blurUp = { hidden: { opacity: 0, y: 40, filter: 'blur(10px)' }, show: (i = 0) => ({ opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.82, delay: i * 0.11, ease: [0.22, 1, 0.36, 1] } }) };
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.17, delayChildren: 0.08 } } };
-// once:false — анимация проигрывается заново при каждом въезде блока в зону видимости
-// (в т.ч. когда пользователь скроллит обратно вверх к началу страницы)
-const vp = { once: false, amount: 0.3 };
-
-// шаги блока «Как это работает»: каждая следующая строка с бОльшей, но строго РАВНОЙ задержкой
-// (явный линейный delay перекрывает общий stagger → интервалы между строками одинаковые)
-const procStep = { hidden: { opacity: 0, x: -120, rotate: -2 }, show: (i = 0) => ({ opacity: 1, x: 0, rotate: 0, transition: { duration: 0.7, delay: 0.1 + i * 0.24, ease: [0.22, 1, 0.36, 1] } }) };
+const fromBottom = { hidden: { opacity: 0, y: 60 }, show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] } }) };
+const fromLeft = { hidden: { opacity: 0, x: -150, rotate: -3 }, show: (i = 0) => ({ opacity: 1, x: 0, rotate: 0, transition: { duration: 0.85, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] } }) };
+const fromRight = { hidden: { opacity: 0, x: 150, rotate: 3 }, show: (i = 0) => ({ opacity: 1, x: 0, rotate: 0, transition: { duration: 0.85, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] } }) };
+const popIn = { hidden: { opacity: 0, scale: 0.78, y: 60 }, show: (i = 0) => ({ opacity: 1, scale: 1, y: 0, transition: { duration: 0.75, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] } }) };
+const blurUp = { hidden: { opacity: 0, y: 40, filter: 'blur(10px)' }, show: (i = 0) => ({ opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.9, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] } }) };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } } };
+const vp = { once: true, amount: 0.2 };
 
 // animated count-up for the result metrics
 function Counter({ value }) {
@@ -27,10 +19,10 @@ function Counter({ value }) {
   const target = m ? parseInt(m[2], 10) : 0;
   const post = m ? m[3] : '';
   const ref = useRef(null);
-  const inView = useInView(ref, { once: false, amount: 0.6 });
+  const inView = useInView(ref, { once: true, amount: 0.6 });
   const [n, setN] = useState(0);
   useEffect(() => {
-    if (!inView) { setN(0); return; } // сброс при уходе из вида → пересчёт при возврате
+    if (!inView) return;
     let raf; const start = performance.now(); const dur = 1300;
     const tick = (now) => {
       const p = Math.min(1, (now - start) / dur);
@@ -93,12 +85,9 @@ const RESULTS = [
 
 const STEPS = [
   ['01', 'Фундамент', 'Мышление и ментальные модели: фокус, стратегия и принятие решений в условиях неопределённости.'],
-  ['02', 'Рынок', 'Маркетинг и психология влияния: воронки и контент, которые превращают холодное внимание в тёплые заявки.'],
-  ['03', 'Монетизация', 'Модели дохода и заработок: упаковываешь навык в продукт и выстраиваешь устойчивый денежный поток.'],
-  ['04', 'Продукт', 'Веб-разработка: лендинги, сайты и приложения собственными руками — от макета до рабочего релиза.'],
-  ['05', 'Визуал и медиа', '3D, аудио и видео: полноценный продакшн без подрядчиков и без потери смысла на каждом этапе.'],
-  ['06', 'Интерактив', 'Game-дизайн и геймификация: механики вовлечения, которые удерживают внимание и оживляют продукт.'],
-  ['07', 'Запуск и рост', 'Деплой, аналитика, оптимизация и масштабирование — результат, который работает и растёт без тебя.'],
+  ['02', 'Применение', 'Маркетинг и монетизация — выводишь мышление на рынок и превращаешь навык в устойчивый доход.'],
+  ['03', 'Создание', 'Веб, 3D, аудио, видео, game-дизайн — собираешь продукт собственными руками, от макета до релиза.'],
+  ['04', 'Запуск и рост', 'Деплой, аналитика, оптимизация и масштабирование — результат, который работает и растёт без тебя.'],
 ];
 
 const TIERS = [
@@ -124,7 +113,7 @@ export default function Sections() {
       {/* ===== Directions (themes) ===== */}
       <section className="section" id="themes">
         <span className="sec-bracket tl" aria-hidden /><span className="sec-bracket br" aria-hidden />
-        <SecHead index="01" kicker="// НАПРАВЛЕНИЯ" title="Восемь направлений"
+        <SecHead index="01" kicker="// DIRECTIONS" title="Восемь направлений"
           lead="Те же узлы, что в меню и на орбитальной сетке. Это не отдельные курсы — это грани одной системы. Наведи на блок, чтобы раскрыть суть." />
         <motion.div className="themes-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
           {THEMES.map((t, i) => (
@@ -147,7 +136,7 @@ export default function Sections() {
 
       {/* ===== Why us ===== */}
       <section className="section" id="why">
-        <SecHead index="02" kicker="// ПОЧЕМУ ЭТО РАБОТАЕТ" title="Почему это работает"
+        <SecHead index="02" kicker="// WHY IT WORKS" title="Почему это работает"
           lead="Четыре принципа, на которых держится система — и которые отличают её от очередной папки с видео-уроками." />
         <motion.div className="feature-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
           {FEATURES.map(([d, title, text], i) => (
@@ -163,7 +152,7 @@ export default function Sections() {
 
       {/* ===== Results / cases ===== */}
       <section className="section" id="benefits">
-        <SecHead index="03" kicker="// РЕЗУЛЬТАТ" title="Что это даёт"
+        <SecHead index="03" kicker="// OUTCOMES" title="Что это даёт"
           lead="Не абстрактные «знания», а измеримый результат на каждом уровне системы." />
         <motion.div className="case-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
           {RESULTS.map(([tag, title, text, num, unit], i) => (
@@ -179,12 +168,12 @@ export default function Sections() {
 
       {/* ===== Process ===== */}
       <section className="section" id="process">
-        <SecHead index="04" kicker="// МАРШРУТ" title="Как это работает"
+        <SecHead index="04" kicker="// THE PATH" title="Как это работает"
           lead="Линейный маршрут от первого принципа до растущего продукта. Каждый шаг опирается на предыдущий." />
         <motion.div className="process" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
           <span className="proc-spine" aria-hidden />
           {STEPS.map(([n, title, text], i) => (
-            <motion.div className="proc-step" key={n} custom={i} variants={procStep} whileHover={{ x: 6 }}>
+            <motion.div className="proc-step" key={n} custom={i} variants={fromLeft} whileHover={{ x: 6 }}>
               <div className="proc-num">{n}</div>
               <div className="proc-body"><h3>{title}</h3><p>{text}</p></div>
             </motion.div>
@@ -194,7 +183,7 @@ export default function Sections() {
 
       {/* ===== Pricing ===== */}
       <section className="section" id="pricing">
-        <SecHead index="05" kicker="// ДОСТУП" title="Доступ"
+        <SecHead index="05" kicker="// ACCESS" title="Доступ"
           lead="Три уровня погружения — от первой разведки до полной трансформации." />
         <motion.div className="price-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
           {TIERS.map(([name, price, sub, feats, hot], i) => (
@@ -212,7 +201,7 @@ export default function Sections() {
 
       {/* ===== Team ===== */}
       <section className="section" id="about">
-        <SecHead index="06" kicker="// КУРАТОРЫ" title="Кураторы направлений"
+        <SecHead index="06" kicker="// CURATORS" title="Кураторы направлений"
           lead="За каждым узлом — практик, который сам прошёл этот путь и собирал продукты в бою." />
         <motion.div className="team-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
           {TEAM.map(([name, role], i) => (

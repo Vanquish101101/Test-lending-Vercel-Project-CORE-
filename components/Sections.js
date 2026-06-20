@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { THEMES } from '@/lib/themes';
+import { ThemeVisual, FeatureVisual } from '@/components/CardVisual';
 
 // ---- reveal variants (cinematic, directional) ----
 const fromBottom = { hidden: { opacity: 0, y: 60 }, show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] } }) };
@@ -116,21 +117,36 @@ export default function Sections() {
         <SecHead index="01" kicker="// DIRECTIONS" title="Восемь направлений"
           lead="Те же узлы, что в меню и на орбитальной сетке. Это не отдельные курсы — это грани одной системы. Наведи на блок, чтобы раскрыть суть." />
         <motion.div className="themes-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
-          {THEMES.map((t, i) => (
-            <motion.a
-              href={`#${t.id}`} id={t.id} key={t.id} className="theme-card" style={{ color: t.color }}
-              custom={i} variants={i % 2 ? fromRight : fromLeft}
-              whileHover={{ y: -8, scale: 1.03 }}
-            >
-              <span className="dot" style={{ background: t.color, color: t.color }} />
-              <span className="glow" style={{ background: t.color }} />
-              <div className="en">{t.en}</div>
-              <div className="ru">{t.ru}</div>
-              <div className="sh">{t.short}</div>
-              <div className="reveal">{t.desc}</div>
-              <span className="card-scan" aria-hidden />
-            </motion.a>
-          ))}
+          {THEMES.map((t, i) => {
+            const face = (
+              <>
+                <div className="en">{t.en}</div>
+                <div className="ru">{t.ru}</div>
+                <div className="sh">{t.short}</div>
+              </>
+            );
+            return (
+              <motion.a
+                href={`#${t.id}`} id={t.id} key={t.id} className="theme-card split-card" style={{ color: t.color }}
+                custom={i} variants={i % 2 ? fromRight : fromLeft}
+                whileHover={{ y: -8, scale: 1.03 }}
+              >
+                <span className="dot" style={{ background: t.color, color: t.color }} />
+                <span className="glow" style={{ background: t.color }} />
+                <div className="card-shatter" aria-hidden>
+                  <div className="shard shard-tl">{face}</div>
+                  <div className="shard shard-tr">{face}</div>
+                  <div className="shard shard-bl">{face}</div>
+                  <div className="shard shard-br">{face}</div>
+                </div>
+                <div className="card-open">
+                  <ThemeVisual id={t.id} color={t.color} />
+                  <p className="open-desc">{t.desc}</p>
+                </div>
+                <span className="card-scan" aria-hidden />
+              </motion.a>
+            );
+          })}
         </motion.div>
       </section>
 
@@ -139,14 +155,31 @@ export default function Sections() {
         <SecHead index="02" kicker="// WHY IT WORKS" title="Почему это работает"
           lead="Четыре принципа, на которых держится система — и которые отличают её от очередной папки с видео-уроками." />
         <motion.div className="feature-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
-          {FEATURES.map(([d, title, text], i) => (
-            <motion.div className="feature-card" key={title} custom={i} variants={popIn} whileHover={{ y: -6 }}>
-              <svg className="feat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={d} /></svg>
-              <h3>{title}</h3>
-              <p>{text}</p>
-              <span className="feat-idx cyber-font" aria-hidden>{String(i + 1).padStart(2, '0')}</span>
-            </motion.div>
-          ))}
+          {FEATURES.map(([d, title, text], i) => {
+            const accent = i % 2 ? 'var(--violet)' : 'var(--cyan)';
+            const face = (
+              <>
+                <svg className="feat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={d} /></svg>
+                <h3>{title}</h3>
+                <p>{text}</p>
+                <span className="feat-idx cyber-font" aria-hidden>{String(i + 1).padStart(2, '0')}</span>
+              </>
+            );
+            return (
+              <motion.div className="feature-card split-card" key={title} custom={i} variants={popIn} whileHover={{ y: -6 }}>
+                <div className="card-shatter" aria-hidden>
+                  <div className="shard shard-tl">{face}</div>
+                  <div className="shard shard-tr">{face}</div>
+                  <div className="shard shard-bl">{face}</div>
+                  <div className="shard shard-br">{face}</div>
+                </div>
+                <div className="card-open">
+                  <FeatureVisual d={d} color={accent} />
+                  <p className="open-desc">{text}</p>
+                </div>
+              </motion.div>
+            );
+          })}
         </motion.div>
       </section>
 

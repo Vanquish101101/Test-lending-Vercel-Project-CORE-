@@ -7,6 +7,8 @@ import Sections from '@/components/Sections';
 import AudioController from '@/components/AudioController';
 import SideCode from '@/components/SideCode';
 import MatrixRain from '@/components/MatrixRain';
+import GlitchFX from '@/components/GlitchFX';
+import { playGlitch } from '@/lib/sfx';
 
 const HeroScene = dynamic(() => import('@/components/HeroScene'), { ssr: false });
 
@@ -21,15 +23,16 @@ export default function Page() {
     const set = (patch) => setFx((p) => ({ ...p, ...patch }));
 
     const run = () => {
-      // 1) tear opens: starfield deforms & melts into pixels, fading away
+      // 1) tear opens: starfield deforms & shatters into a dissolving pixel mosaic; stars fade out
       set({ glitch: true, dim: true });
-      // 2) stars gone -> other reality (falling code) + planet skin turns realistic
-      at(460, () => set({ code: true, realistic: true }));
-      at(620, () => set({ glitch: false }));
-      // 3) ~1s of the code reality
-      at(1620, () => set({ glitch: true }));            // tear opens again to swap back
-      at(2080, () => set({ code: false, dim: false, realistic: false })); // stars rebuild
-      at(2520, () => { set({ glitch: false }); schedule(); });
+      playGlitch(); // system-malfunction + radio-static burst
+      // 2) stars gone -> other reality (falling code + green alien world) + realistic planet skin
+      at(450, () => set({ code: true, realistic: true }));
+      at(700, () => set({ glitch: false }));
+      // 3) ~1.5s of the other reality
+      at(1750, () => { set({ glitch: true }); playGlitch(); }); // tear re-opens to swap back
+      at(1950, () => set({ code: false, dim: false, realistic: false })); // code total 450->1950 = 1.5s
+      at(2400, () => { set({ glitch: false }); schedule(); });
     };
     const schedule = () => at(25000 + Math.random() * 20000, run); // every 25–45s
     schedule();
@@ -47,8 +50,8 @@ export default function Page() {
           <HeroScene dim={fx.dim} realistic={fx.realistic} />
         </div>
         <MatrixRain active={fx.code} glitch={fx.glitch} />
-        {/* energy flash / shockwave at the moment reality tears */}
-        <div className={`warp ${fx.glitch ? 'on' : ''}`} aria-hidden />
+        {/* the starfield shattering into a dissolving pixel mosaic during the tear */}
+        <GlitchFX active={fx.glitch} />
         {/* cinematic film grain + vignette overlay */}
         <div className="hero-fx" aria-hidden />
         <motion.div

@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { THEMES } from '@/lib/themes';
+import NodePreview from './NodePreview';
 
 const ORBIT_R = 2.15;
 
@@ -23,7 +24,9 @@ function ThemeNode({ theme, pos }) {
   const [hovered, setHovered] = useState(false);
   const mesh = useRef();
   const dir = useMemo(() => pos.clone().normalize(), [pos]);
-  const labelPos = useMemo(() => pos.clone().add(dir.clone().multiplyScalar(0.55)), [pos, dir]);
+  // pull the label INWARD toward screen centre (camera looks at origin) so it stays
+  // within the viewport and clear of the HUD edges; the leader line keeps the link
+  const labelPos = useMemo(() => pos.clone().multiplyScalar(0.8), [pos]);
 
   useFrame((state) => {
     if (mesh.current) {
@@ -51,7 +54,10 @@ function ThemeNode({ theme, pos }) {
           <div className="nl-en">{theme.en}</div>
           <div className="nl-reveal">
             <div className="nl-desc">{theme.short}</div>
-            <div className="nl-video"><span /></div>
+            <div className="nl-video">
+              <NodePreview id={theme.id} c={theme.color} />
+              <span />
+            </div>
           </div>
         </div>
       </Html>

@@ -26,7 +26,7 @@ function starColor() {
   return new THREE.Color(1.0, 0.84, 0.66);                    // orange
 }
 
-function Layer({ count, rMin, rMax, base, twinkleAmt, twinkleSpd, dim }) {
+function Layer({ count, rMin, rMax, base, twinkleAmt, twinkleSpd, dim, activeBias = 0.66, activeRange = [0.5, 1.0], restRange = [0, 0.18] }) {
   const ref = useRef();
   const geo = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -42,13 +42,16 @@ function Layer({ count, rMin, rMax, base, twinkleAmt, twinkleSpd, dim }) {
       pos[i * 3] = r * Math.sin(phi) * Math.cos(th);
       pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(th);
       pos[i * 3 + 2] = r * Math.cos(phi);
-      // magnitude distribution: the overwhelming majority are tiny/faint specks
-      const mag = Math.pow(Math.random(), 4.0);
-      sz[i] = base * (0.3 + mag * 1.7);
+      // magnitude distribution: the overwhelming majority are tiny/faint specks.
+      // steeper exponent + lower top multiplier => the few brightest stars are reined in
+      const mag = Math.pow(Math.random(), 4.5);
+      sz[i] = base * (0.3 + mag * 1.5);
       ph[i] = Math.random() * Math.PI * 2;
       sp[i] = 0.4 + Math.random() * 1.4; // each star scintillates at its own rate
-      // ~2/3 of stars actively twinkle/shimmer; the remaining ~1/3 sit near-steady
-      tw[i] = Math.random() < 0.66 ? 0.5 + Math.random() * 0.5 : Math.random() * 0.18;
+      // most stars actively twinkle/shimmer; the rest sit near-steady (ratio set per layer)
+      tw[i] = Math.random() < activeBias
+        ? activeRange[0] + Math.random() * (activeRange[1] - activeRange[0])
+        : restRange[0] + Math.random() * (restRange[1] - restRange[0]);
       const c = starColor();
       col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
     }
@@ -99,8 +102,16 @@ export default function Starfield({ dim = false }) {
       <Layer count={22000} rMin={45} rMax={95} base={0.5} twinkleAmt={0.38} twinkleSpd={0.8} dim={dim} />
       {/* mid field — the bulk of visible stars, soft varied scintillation */}
       <Layer count={5600} rMin={24} rMax={52} base={0.8} twinkleAmt={0.55} twinkleSpd={1.15} dim={dim} />
-      {/* near brighter stars — a few, with visible live twinkle */}
-      <Layer count={760} rMin={15} rMax={32} base={1.25} twinkleAmt={0.72} twinkleSpd={1.7} dim={dim} />
+      {/* near brighter stars — a few, with visible live twinkle (reined in a touch more) */}
+      <Layer count={720} rMin={15} rMax={32} base={1.0} twinkleAmt={0.72} twinkleSpd={1.7} dim={dim} />
+      {/* extra lively population — small, fast-blinking stars that add scintillation density
+          without standing out individually; existing layers/their twinkle untouched.
+          denser + faster + a bit more amplitude so the shimmer reads, but kept tiny+dim */}
+      <Layer count={1900} rMin={22} rMax={70} base={0.4} twinkleAmt={0.6} twinkleSpd={2.9} dim={dim}
+        activeBias={0.97} activeRange={[0.6, 0.95]} restRange={[0.18, 0.34]} />
+      {/* a second sparse fast-twinkle sprinkle in the near-mid field for livelier scintillation */}
+      <Layer count={700} rMin={16} rMax={40} base={0.5} twinkleAmt={0.66} twinkleSpd={3.4} dim={dim}
+        activeBias={0.98} activeRange={[0.65, 1.0]} restRange={[0.2, 0.35]} />
     </group>
   );
 }

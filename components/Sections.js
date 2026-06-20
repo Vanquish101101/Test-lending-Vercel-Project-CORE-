@@ -71,8 +71,14 @@ function SecHead({ index, kicker, title, lead }) {
     <div className="sec-head">
       <motion.span className="sec-ghost cyber-font" aria-hidden
         initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 0.07, x: 0 }} viewport={vp} transition={{ duration: 1 }}>{index}</motion.span>
-      {kicker && <motion.span className="sec-kicker cyber-font" variants={fromBottom} initial="hidden" whileInView="show" viewport={vp}>{kicker}</motion.span>}
+      {kicker && (
+        <motion.span className="sec-kicker cyber-font" variants={fromBottom} initial="hidden" whileInView="show" viewport={vp}>
+          {kicker}
+        </motion.span>
+      )}
       <motion.h2 variants={blurUp} initial="hidden" whileInView="show" viewport={vp}>{title}</motion.h2>
+      <motion.span className="sec-rule" aria-hidden
+        initial={{ scaleX: 0 }} whileInView={{ scaleX: 1 }} viewport={vp} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} />
       {lead && <motion.p className="lead" variants={fromBottom} initial="hidden" whileInView="show" viewport={vp}>{lead}</motion.p>}
     </div>
   );
@@ -133,8 +139,10 @@ export default function Sections() {
               custom={i} variants={i % 2 ? fromRight : fromLeft}
               whileHover={{ y: -8, scale: 1.03 }}
             >
+              <span className="card-edge" aria-hidden />
               <span className="dot" style={{ background: t.color, color: t.color }} />
               <span className="glow" style={{ background: t.color }} />
+              <span className="theme-idx cyber-font" aria-hidden>{String(i + 1).padStart(2, '0')}</span>
               <div className="en">{t.en}</div>
               <div className="ru">{t.ru}</div>
               <div className="sh">{t.short}</div>
@@ -184,9 +192,11 @@ export default function Sections() {
         <motion.div className="process" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
           <span className="proc-spine" aria-hidden />
           {STEPS.map(([n, title, text], i) => (
-            <motion.div className="proc-step" key={n} custom={i} variants={procStep} whileHover={{ x: 6 }}>
+            <motion.div className="proc-step" key={n} custom={i} variants={procStep} whileHover={{ x: 8 }}>
+              <span className="proc-node" aria-hidden />
               <div className="proc-num">{n}</div>
               <div className="proc-body"><h3>{title}</h3><p>{text}</p></div>
+              <span className="proc-arrow" aria-hidden>→</span>
             </motion.div>
           ))}
         </motion.div>
@@ -199,6 +209,7 @@ export default function Sections() {
         <motion.div className="price-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
           {TIERS.map(([name, price, sub, feats, hot], i) => (
             <motion.div className={`price-card ${hot ? 'hot' : ''}`} key={name} custom={i} variants={popIn} whileHover={{ y: -10 }}>
+              <span className="price-aura" aria-hidden />
               {hot && <span className="price-badge">{sub}</span>}
               <div className="price-name">{name}</div>
               <div className="price-sub">{!hot && sub}</div>
@@ -216,8 +227,9 @@ export default function Sections() {
           lead="За каждым узлом — практик, который сам прошёл этот путь и собирал продукты в бою." />
         <motion.div className="team-grid" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
           {TEAM.map(([name, role], i) => (
-            <motion.div className="team-card" key={name} custom={i} variants={popIn} whileHover={{ y: -6, scale: 1.03 }}>
-              <div className="team-ava"><span /></div>
+            <motion.div className="team-card" key={name} custom={i} variants={popIn} whileHover={{ y: -8, scale: 1.04 }}>
+              <span className="card-scan" aria-hidden />
+              <div className="team-ava"><span /><span className="ava-ring" aria-hidden /></div>
               <div className="team-name">{name}</div>
               <div className="team-role">{role}</div>
             </motion.div>
@@ -229,6 +241,9 @@ export default function Sections() {
       <section className="section cta-section">
         <motion.div className="cta-box" variants={popIn} initial="hidden" whileInView="show" viewport={vp}>
           <span className="cta-grid-glow" aria-hidden />
+          <span className="cta-ring" aria-hidden />
+          <span className="cta-ring r2" aria-hidden />
+          <motion.span className="cta-kicker cyber-font" variants={fromBottom} initial="hidden" whileInView="show" viewport={vp}>// ФИНАЛЬНЫЙ ШАГ</motion.span>
           <motion.h2 variants={blurUp} initial="hidden" whileInView="show" viewport={vp}>Готов собрать свою систему?</motion.h2>
           <p>Разберём твою цель и за 15 минут соберём маршрут из направлений именно под тебя.</p>
           <a href="#footer" className="cta-btn">Связаться</a>
@@ -236,9 +251,10 @@ export default function Sections() {
       </section>
 
       <footer className="footer" id="footer">
-        <div className="cyber-font" style={{ color: 'var(--gold)', fontSize: 22, marginBottom: 10 }}>PROJECT C.O.R.E.</div>
-        <div>Познай себя — и познаешь всё.</div>
-        <div style={{ marginTop: 14, opacity: 0.7 }}>© {new Date().getFullYear()} Project CORE · Test Landing Vercel · Контакты · Юридическая информация</div>
+        <span className="footer-rule" aria-hidden />
+        <div className="footer-brand cyber-font">PROJECT C.O.R.E.</div>
+        <div className="footer-motto">Познай себя — и познаешь всё.</div>
+        <div className="footer-meta">© {new Date().getFullYear()} Project CORE · Test Landing Vercel · Контакты · Юридическая информация</div>
       </footer>
     </div>
   );

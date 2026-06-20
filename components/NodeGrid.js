@@ -61,32 +61,63 @@ function ThemeNode({ theme, pos }) {
 
 export default function NodeGrid() {
   const group = useRef();
+  const mainMat = useRef();
+  const fineMat = useRef();
 
-  const netGeo = useMemo(() => {
+  // primary cage (the net you liked) + a finer inner subdivision for "serious" density
+  const netGeo = useMemo(() => new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(ORBIT_R, 2)), []);
+  const fineGeo = useMemo(() => new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(ORBIT_R * 0.998, 3)), []);
+  // glowing vertices at the structural nodes of the cage = serious tech read
+  const verts = useMemo(() => {
     const ico = new THREE.IcosahedronGeometry(ORBIT_R, 2);
-    return new THREE.WireframeGeometry(ico);
+    const p = ico.attributes.position;
+    const seen = new Set(); const out = [];
+    for (let i = 0; i < p.count; i++) {
+      const v = new THREE.Vector3().fromBufferAttribute(p, i);
+      const k = `${v.x.toFixed(2)},${v.y.toFixed(2)},${v.z.toFixed(2)}`;
+      if (seen.has(k)) continue; seen.add(k); out.push(v);
+    }
+    return out;
   }, []);
 
   const dots = useMemo(() => fibSphere(90, ORBIT_R), []);
   const themePts = useMemo(() => fibSphere(THEMES.length, ORBIT_R), []);
 
   useFrame((state, delta) => {
+    const t = state.clock.elapsedTime;
     if (group.current) {
       group.current.rotation.y -= delta * 0.07;
-      group.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.1) * 0.08;
+      group.current.rotation.x = Math.sin(t * 0.1) * 0.08;
     }
+    // subtle live energy pulse along the grid
+    if (mainMat.current) mainMat.current.opacity = 0.34 + Math.sin(t * 0.9) * 0.06;
+    if (fineMat.current) fineMat.current.opacity = 0.10 + Math.sin(t * 0.9 + 1.5) * 0.04;
   });
 
   return (
     <group ref={group}>
+      {/* main net — additive glow, fog gives real depth fade */}
       <lineSegments geometry={netGeo}>
-        <lineBasicMaterial color={'#2f7fd6'} transparent opacity={0.32} />
+        <lineBasicMaterial ref={mainMat} color={'#3a9bef'} transparent opacity={0.34} blending={THREE.AdditiveBlending} fog />
+      </lineSegments>
+      {/* finer inner lattice for density / seriousness */}
+      <lineSegments geometry={fineGeo}>
+        <lineBasicMaterial ref={fineMat} color={'#1f6fcf'} transparent opacity={0.1} blending={THREE.AdditiveBlending} fog />
       </lineSegments>
 
+      {/* structural glowing vertices */}
+      {verts.map((p, i) => (
+        <mesh key={`v${i}`} position={p}>
+          <sphereGeometry args={[0.022, 10, 10]} />
+          <meshBasicMaterial color={'#bfe6ff'} transparent opacity={0.9} toneMapped={false} />
+        </mesh>
+      ))}
+
+      {/* faint scattered grid points */}
       {dots.map((p, i) => (
-        <mesh key={i} position={p}>
-          <sphereGeometry args={[0.018, 8, 8]} />
-          <meshBasicMaterial color={'#6fd0ff'} transparent opacity={0.8} toneMapped={false} />
+        <mesh key={`d${i}`} position={p}>
+          <sphereGeometry args={[0.012, 6, 6]} />
+          <meshBasicMaterial color={'#6fd0ff'} transparent opacity={0.55} toneMapped={false} />
         </mesh>
       ))}
 

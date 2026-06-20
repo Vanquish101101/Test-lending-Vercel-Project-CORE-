@@ -23,10 +23,33 @@ export default function MatrixRain({ active = false, glitch = false }) {
     const depth = new Array(cols).fill(0).map(() => 0.4 + Math.pow(Math.random(), 1.6) * 0.6);
     let raf;
     const pick = () => chars[(Math.random() * chars.length) | 0];
+    const W = canvas.width, H = canvas.height;
+    // faint green, monochrome silhouettes of "another world" sitting behind the code
+    const drawWorld = () => {
+      ctx.save();
+      // a large alien planet, upper right
+      const cx = W * 0.72, cy = H * 0.40, R = Math.min(W, H) * 0.22;
+      let pg = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.05, cx, cy, R);
+      pg.addColorStop(0, 'rgba(90,220,140,0.11)');
+      pg.addColorStop(0.7, 'rgba(30,120,70,0.06)');
+      pg.addColorStop(1, 'rgba(8,40,24,0)');
+      ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+      // its orbital system — elliptical rings
+      ctx.strokeStyle = 'rgba(70,200,120,0.07)'; ctx.lineWidth = 1.5;
+      for (const rr of [R * 1.7, R * 2.4]) { ctx.beginPath(); ctx.ellipse(cx, cy, rr, rr * 0.32, -0.45, 0, 7); ctx.stroke(); }
+      // a small distant world, lower left
+      const c2x = W * 0.18, c2y = H * 0.72, R2 = Math.min(W, H) * 0.08;
+      let pg2 = ctx.createRadialGradient(c2x, c2y, 2, c2x, c2y, R2);
+      pg2.addColorStop(0, 'rgba(130,235,160,0.11)');
+      pg2.addColorStop(1, 'rgba(8,40,24,0)');
+      ctx.fillStyle = pg2; ctx.beginPath(); ctx.arc(c2x, c2y, R2, 0, 7); ctx.fill();
+      ctx.restore();
+    };
     const draw = () => {
       // trail fade — keeps legible streaks, filmic but readable
       ctx.fillStyle = 'rgba(1, 6, 4, 0.10)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawWorld();
       ctx.textBaseline = 'top';
       for (let i = 0; i < drops.length; i++) {
         const d = depth[i];
